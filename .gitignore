@@ -1,0 +1,7 @@
+config/.env
+.idea/
+app/__pycache__
+app/database/__pycache__
+config/__pycache__
+__pycache__
+.venv
