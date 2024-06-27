@@ -5,6 +5,8 @@ import os
 
 # Импорт функций из библиотек
 from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
 
 # Импорт из файлов
 from app.handlers import router
@@ -18,7 +20,7 @@ async def main():
     await async_main()
     # Собираем все для запуска бота
     bot_TOKEN = await get_tokens('TOKEN')
-    bot = Bot(token=bot_TOKEN)
+    bot = Bot(token=bot_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
     dp.include_routers(adm_r, router)
     await bot.delete_webhook(drop_pending_updates=True) #Пропускаем накопленные сообщения

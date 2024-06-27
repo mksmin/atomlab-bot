@@ -1,6 +1,5 @@
 
 # Импорт функций из библиотек
-
 from aiogram import Router, F
 from aiogram.filters import CommandStart, Command, ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER
 from aiogram.types import Message, ContentType, ChatMemberUpdated
@@ -14,12 +13,11 @@ from app.adminpanel import get_id_chat_root
 
 router = Router() # обработчик хэндлеров
 
-
-
 @router.message(CommandStart()) # Стартовый хэндлер
 async def get_start(message: Message):
     from_user = message.from_user
     await rq.set_user(from_user.id, from_user.username)
+    await message.answer(text=f'Привет, {from_user.first_name}!')
 
 
 # Временная команда, которая регистрирует пользователя в бд
@@ -36,8 +34,6 @@ async def get_member(message: Message):
 
     await message.answer(message_text)
 
-
-
 # Добавляем пользователя в бд после вступления
 @router.chat_member(ChatMemberUpdatedFilter(IS_NOT_MEMBER >> IS_MEMBER))
 async def get_member(update: ChatMemberUpdated):
@@ -52,11 +48,11 @@ async def get_member(update: ChatMemberUpdated):
 
         case False:
             if from_user.username == None:
-                username_ = ''
+                username_ = f'{from_user.first_name}'
             else:
-                username_ = f' (@{from_user.username})'
+                username_ = f'{from_user.first_name} (@{from_user.username})'
 
-            message_text = (f'Привет, {from_user.first_name}{username_}!\n'
+            message_text = (f'Привет, {username_}!\n'
                             f'Учиться можно только на одном направлении\n\n'
                             f'Я отправил админу сообщение, он свяжется с тобой и удалит тебя из других чатов')
             await update.answer(message_text)
@@ -73,6 +69,23 @@ async def get_member(update: ChatMemberUpdated):
 # Временная функция для проверки (удалить после использования)
 @router.message(Command('checkme'))
 async def checkme(message: Message):
+    from_user = message.from_user
     status = await rq.set_user_chat(message.from_user.id, message.chat.id, message.chat.title)
+    data_ = await rq.get_chats(message.from_user.id)
+    await message.answer(text=f'чаты: {data_}\n'
+                              f'значение - {status}')
+    match status:
+        case True:
+            message_text = f'Привет, {from_user.first_name}!'
+            await message.answer(message_text)
 
-    print(f'Получил значение {status}')
+        case False:
+            if from_user.username == None:
+                username_ = f'{from_user.first_name}'
+            else:
+                username_ = f'{from_user.first_name} (@{from_user.username})'
+
+            message_text = (f'Привет, {username_}!\n'
+                            f'Учиться можно только на одном направлении\n\n'
+                            f'Я отправил админу сообщение, он свяжется с тобой и удалит тебя из других чатов')
+            await message.answer(message_text)

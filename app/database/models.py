@@ -13,10 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_
 from config.config import get_tokens
 
 # Создаем подключение к БД
-async def getsql_token():
-    return await get_tokens('PostSQL_host')
-
-post_host_token = asyncio.run(getsql_token())
+post_host_token = asyncio.run(get_tokens('PostSQL_host'))
 engine = create_async_engine(url=post_host_token) # Создаем БД
 async_session = async_sessionmaker(engine) # Подключаемся к БД
 
@@ -57,6 +54,6 @@ async def async_main(): # Функция создает все таблицы, �
         await conn.run_sync(Base.metadata.create_all)
 
 
-async def drop_all():
+async def drop_all(): #Удаляет все таблицы
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

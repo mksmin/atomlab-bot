@@ -12,11 +12,18 @@ from app.database.models import User, ChatUsers, Chat, Admin
 
 
 # Функция обращается к БД и проверяет связь пользователя и чата в бд
+# Если такой связи нет - она создается
+# Если пользователь состоит в 2х и более чатах, возвращает значение True
 async def set_user_chat(tg_id, chat_id, chat_title):
     async with async_session() as session:
+        if not tg_id == chat_id: # Фильтр, чтобы в базу не добавлялся чат пользователя с ботом
+            setsql = True
+        else:
+            setsql = False
+
         user = await session.scalar(select(ChatUsers).where(ChatUsers.tg_id == tg_id, ChatUsers.chat_id == chat_id))
 
-        if not user:
+        if not user and setsql:
             session.add(ChatUsers(tg_id=tg_id, chat_id=chat_id, chat_title=chat_title))
             await session.commit() # сохраняем информацию
         else:
@@ -52,11 +59,12 @@ async def set_chat(chat_id, chat_title):
 
 async def get_chats(tg_id):  # Получаю список чатов, в которые вступил конкретный пользователь
     async with async_session() as session:
+        count_value = await session.scalar(select(func.count()).select_from(ChatUsers).where(ChatUsers.tg_id == tg_id))
         data = await session.execute(select(ChatUsers.chat_title).where(ChatUsers.tg_id == tg_id))
         data_fetch = data.fetchall()
         data_list = []
         index = 0
-        while index < len(data_fetch):
+        while index < count_value:
             first_strip = str(data_fetch[index]).strip("()")
             second_strip = f'— {first_strip.strip(",'")}'
             data_list.append(second_strip)
