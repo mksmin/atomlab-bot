@@ -16,7 +16,7 @@ from app.database.models import User, ChatUsers, Chat, Admin
 # Если пользователь состоит в 2х и более чатах, возвращает значение True
 async def set_user_chat(tg_id, chat_id, chat_title):
     async with async_session() as session:
-        if not tg_id == chat_id: # Фильтр, чтобы в базу не добавлялся чат пользователя с ботом
+        if not tg_id == chat_id:  # Фильтр, чтобы в базу не добавлялся чат пользователя с ботом
             setsql = True
         else:
             setsql = False
@@ -25,19 +25,21 @@ async def set_user_chat(tg_id, chat_id, chat_title):
 
         if not user and setsql:
             session.add(ChatUsers(tg_id=tg_id, chat_id=chat_id, chat_title=chat_title))
-            await session.commit() # сохраняем информацию
+            await session.commit()  # сохраняем информацию
         else:
             pass
 
         count_value = await session.scalar(select(func.count()).select_from(ChatUsers).where(ChatUsers.tg_id == tg_id))
 
-        if count_value <=1:
+        if count_value <= 1:
             return True
         else:
             return False
 
 
 # Используем контекстный менеджер, чтобы сессия закрывалась после исполнения функции
+# Функция сохраняет id и никнейм пользователя в БД
+# Need FIX: Если пользователь сменит никнейм -- бд не обновится (нужно ли это?)
 async def set_user(tg_id, username):
     async with async_session() as session:
         user = await session.scalar(select(User).where(User.tg_id == tg_id))
@@ -47,6 +49,7 @@ async def set_user(tg_id, username):
             await session.commit()  # сохраняем информацию
 
 
+# Функция регистрирует ID чата и чат в БД
 async def set_chat(chat_id, chat_title):
     async with async_session() as session:
         chat = await session.scalar(select(Chat).where(Chat.chat_id == chat_id))
@@ -89,13 +92,10 @@ async def get_list_chats():  # Получаю список id всех чато�
         return data_list
 
 
+# Функция регистрации администраторов
 async def reg_admin(tg_id, username, first_name):
     async with async_session() as session:
         admin = await session.scalar(select(Admin).where(Admin.tg_id == tg_id))
         if not admin:
             session.add(Admin(tg_id=tg_id, username=username, first_name=first_name))
             await session.commit()
-
-
-async def check_chat(chat_id, tg_id):  #
-    return chat_id == tg_id

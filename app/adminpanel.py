@@ -1,20 +1,20 @@
 # Импорт функций из библиотек
 from aiogram import Router, F
-from aiogram.filters import CommandStart, Command
+from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
 
 # Импорт из файлов
-from app.middlewares import RootProtect
+from app.middlewares import RootProtect, CheckChatBot
 from config.config import get_tokens
 import app.database.request as rq
 from app.database.models import drop_all
 from app.statesuser import Send
 from app.keyboards import keyboard_send_mess
 
+adm_r = Router()  # обработчик хэндлеров
 
-adm_r = Router() # обработчик хэндлеров
+
 async def get_id_chat_root():
     return await get_tokens("ROOT_CHAT")
 
@@ -22,6 +22,7 @@ async def get_id_chat_root():
 @adm_r.message(Command('rpanel'), RootProtect())
 async def get_panel(message: Message):
     await message.answer(f'Ты вызвал панель владельца')
+
 
 @adm_r.message(Command('chatid'), RootProtect())
 async def get_chat_id(message: Message):
@@ -31,41 +32,46 @@ async def get_chat_id(message: Message):
                                         f'Чат id - {message.chat.id}\n'
                                         f'Название: {message.chat.title}')
 
+
 @adm_r.message(Command('addchat'), RootProtect())
-async def gaddchat_sql(message: Message):
+async def add_chat_sql(message: Message):
     chat_id = message.chat.id
     chat_title = message.chat.title
 
     await rq.set_chat(chat_id, chat_title)
 
+
+# Очищает БД
 @adm_r.message(Command('dropall'), RootProtect())
-async def gaddchat_sql(message: Message):
+async def rm_database_sheets():
     await drop_all()
 
+# /-- send start--/
+
+
 # Функция отправки сообщения во все чаты
-@adm_r.message(Command('send'), RootProtect())
+# Умеет отлавливать фото с тектом или только текст (форматированный)
+# Не умеет работать с остальным контентом
+@adm_r.message(Command('send'), RootProtect(), CheckChatBot(chat_type='private'))
 async def sendchats(message: Message, state: FSMContext):
-    await state.set_state(Send.sendmess) # Состояние ожидания сообщения
-    id = await rq.check_chat(message.chat.id, message.from_user.id)
-    if id:
-        await message.answer(f'Пришли сообщение для отправки')
-
-    else:
-        await message.answer(f'В чате это не работает, только в боте')
-        await state.clear()
+    await state.set_state(Send.sendmess)  # Состояние ожидания сообщения
+    await message.answer(f'Пришли сообщение для отправки'
+                         f'\n\nЭто может быть фотография с описанием '
+                         f'или форматированный текст'
+                         f'\n\nДругой контент отправлять пока не умею')
 
 
-@adm_r.message(Send.sendmess, RootProtect())
+@adm_r.message(Send.sendmess, RootProtect(), CheckChatBot(chat_type='private'))
 async def confirm(message: Message, state: FSMContext):
-    await state.update_data(sendmess=message.html_text)  # Сейчас отлавливает только текст, нужно еще картинку и ссылки
+    await state.update_data(sendmess=message.html_text)
     if message.photo:
         await state.set_state(Send.ph_true)
         await state.update_data(ph_true=message.photo[-1].file_id)
     else:
         await state.update_data(ph_true='False')
-        pass
 
     await message.answer('Отправляем?', reply_markup=keyboard_send_mess)
+
 
 @adm_r.callback_query(F.data == 'send', RootProtect())
 async def send_message(callback: CallbackQuery, state: FSMContext):
@@ -89,7 +95,8 @@ async def cancel_send(callback: CallbackQuery, state: FSMContext):
     await callback.answer('Операция отменена')
     await state.clear()
 
-# Конец функции отправки сообщений во все чаты
+
+# /-- send end--/
 
 
 # Временная функция для проверки (удалить после использования)
@@ -106,7 +113,7 @@ async def checkme(message: Message):
             await message.answer(message_text)
 
         case False:
-            if from_user.username == None:
+            if from_user.username is None:
                 username_ = f'{from_user.first_name}'
             else:
                 username_ = f'{from_user.first_name} (@{from_user.username})'

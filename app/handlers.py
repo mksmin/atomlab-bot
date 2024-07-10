@@ -1,19 +1,18 @@
-
 # Импорт функций из библиотек
 from aiogram import Router, F
 from aiogram.filters import CommandStart, Command, ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER
 from aiogram.types import Message, ContentType, ChatMemberUpdated, FSInputFile
 
 # Импорт из файлов
-from app.middlewares import RootProtect
+from app.middlewares import CheckChatBot
 import app.database.request as rq
 from app.adminpanel import get_id_chat_root
 from app.user_requests import get_time
 
+router = Router()  # обработчик хэндлеров
 
-router = Router() # обработчик хэндлеров
 
-@router.message(CommandStart()) # Стартовый хэндлер
+@router.message(CommandStart())  # Стартовый хэндлер
 async def get_start(message: Message):
     from_user = message.from_user
     await rq.set_user(from_user.id, from_user.username)
@@ -34,6 +33,7 @@ async def get_member(message: Message):
 
     await message.answer(message_text)
 
+
 # Добавляем пользователя в бд после вступления
 @router.chat_member(ChatMemberUpdatedFilter(IS_NOT_MEMBER >> IS_MEMBER))
 async def get_member(update: ChatMemberUpdated):
@@ -47,7 +47,7 @@ async def get_member(update: ChatMemberUpdated):
             await update.answer(message_text)
 
         case False:
-            if from_user.username == None:
+            if from_user.username is None:
                 username_ = f'{from_user.first_name}'
             else:
                 username_ = f'{from_user.first_name} (@{from_user.username})'
@@ -60,16 +60,24 @@ async def get_member(update: ChatMemberUpdated):
             root_id = await get_id_chat_root()
             data_ = await rq.get_chats(update.from_user.id)
             await update.bot.send_message(chat_id=int(root_id),
-                                           text=f'{username_}'
-                                                f'\nвступил в несколько чатов: '
-                                                f'\n\n{data_}'
-                                                f'\n\nСвяжись с ним, чтобы обсудить детали')
+                                          text=f'{username_}'
+                                               f'\nвступил в несколько чатов: '
+                                               f'\n\n{data_}'
+                                               f'\n\nСвяжись с ним, чтобы обсудить детали')
 
 
-@router.message(Command('timing')) #Функция получения расписания
+# /-- timing start --/
+# Функция получения расписания через чат компетенции
+@router.message(Command('timing'), CheckChatBot(chat_type=["group", "supergroup"]))
 async def get_timing(message: Message):
-    if message.from_user.id == message.chat.id:
-        await message.answer('Расписание можно получить только через чат компетенции')
-    else:
-        result = await get_time(message.chat.title)
-        await message.answer(result, parse_mode='HTML')
+    result = await get_time(message.chat.title)
+    await message.answer(result, parse_mode='HTML')
+
+
+# Фильтрует, если в бота написать
+# Понадобится потом для доп функционала
+@router.message(Command('timing'), CheckChatBot(chat_type="private"))
+async def get_timing(message: Message):
+    await message.answer('Расписание можно получить только через чат компетенции')
+
+# /-- timing end--/
