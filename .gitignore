@@ -1,8 +1,14 @@
-config/.env
+# Кэш и системные файлы PyCharm
 .idea/
 app/__pycache__
 app/database/__pycache__
 config/__pycache__
 __pycache__
+
+# Виртуальное окружение
 .venv
+
+
+# Файлы проекта
+config/.env
 media/Расписание
