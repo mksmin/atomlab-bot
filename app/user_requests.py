@@ -2,7 +2,7 @@ import pandas as pd
 import re
 import datetime
 import os
-import media.Расписание
+
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
