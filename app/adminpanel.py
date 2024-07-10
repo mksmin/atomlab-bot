@@ -90,3 +90,28 @@ async def cancel_send(callback: CallbackQuery, state: FSMContext):
     await state.clear()
 
 # Конец функции отправки сообщений во все чаты
+
+
+# Временная функция для проверки (удалить после использования)
+@adm_r.message(Command('checkme'), RootProtect())
+async def checkme(message: Message):
+    from_user = message.from_user
+    status = await rq.set_user_chat(message.from_user.id, message.chat.id, message.chat.title)
+    data_ = await rq.get_chats(message.from_user.id)
+    await message.answer(text=f'чаты: {data_}\n'
+                              f'значение - {status}')
+    match status:
+        case True:
+            message_text = f'Привет, {from_user.first_name}!'
+            await message.answer(message_text)
+
+        case False:
+            if from_user.username == None:
+                username_ = f'{from_user.first_name}'
+            else:
+                username_ = f'{from_user.first_name} (@{from_user.username})'
+
+            message_text = (f'Привет, {username_}!\n'
+                            f'Учиться можно только на одном направлении\n\n'
+                            f'Я отправил админу сообщение, он свяжется с тобой и удалит тебя из других чатов')
+            await message.answer(message_text)
