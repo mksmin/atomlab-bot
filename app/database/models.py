@@ -28,6 +28,8 @@ class User(Base):  # Таблица, которая хранит юзеров
     id: Mapped[int] = mapped_column(primary_key=True)
     tg_id = mapped_column(BigInteger)
     tg_username: Mapped[str] = mapped_column(String(30))
+    karma_value: Mapped[int] = mapped_column(default=5)
+    karma_capital: Mapped[int] = mapped_column(default=0)
 
 
 class Chat(Base):  # таблица с чатами, в которых бот админ
@@ -53,6 +55,7 @@ class Admin(Base):
     tg_id = mapped_column(BigInteger)
     username: Mapped[str] = mapped_column(String(30))
     first_name: Mapped[str] = mapped_column(String(20))
+
 
 
 async def async_main():  # Функция создает все таблицы, если их не существует
