@@ -22,11 +22,13 @@ async def get_id_chat_root():
 @adm_r.message(Command('rpanel'), RootProtect())
 async def get_panel(message: Message):
     await message.answer(f'Ты вызвал панель владельца')
+    await message.answer(f'твой ID: {message.from_user.id}'
+                         f'\nID чата: {message.chat.id}')
 
 
 @adm_r.message(Command('chatid'), RootProtect())
 async def get_chat_id(message: Message):
-    root_id = await get_id_chat_root()
+    root_id = await get_tokens("ROOT_CHAT")
     await message.bot.send_message(chat_id=int(root_id),
                                    text=f'Ты запросил айди чата:\n'
                                         f'Чат id - {message.chat.id}\n'
@@ -57,7 +59,7 @@ async def bot_added_as_admin(update: ChatMemberUpdated):
     chat_title = update.chat.title
     await rq.set_chat(chat_id, chat_title)
 
-
+#
 
 # Очищает БД
 @adm_r.message(Command('dropall'), RootProtect())
