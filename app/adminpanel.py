@@ -1,7 +1,7 @@
 # Импорт функций из библиотек
 from aiogram import Router, F
-from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
+from aiogram.filters import Command, ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER, ADMINISTRATOR
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove, ChatMemberUpdated
 from aiogram.fsm.context import FSMContext
 
 # Импорт из файлов
@@ -13,7 +13,7 @@ from app.statesuser import Send
 from app.keyboards import keyboard_send_mess
 
 adm_r = Router()  # обработчик хэндлеров
-
+adm_r.my_chat_member.filter(F.chat.type.in_({'group', 'supergroup'}))
 
 async def get_id_chat_root():
     return await get_tokens("ROOT_CHAT")
@@ -32,13 +32,31 @@ async def get_chat_id(message: Message):
                                         f'Чат id - {message.chat.id}\n'
                                         f'Название: {message.chat.title}')
 
-
+# Регистрация чата вручную рутпользователем
 @adm_r.message(Command('addchat'), RootProtect())
 async def add_chat_sql(message: Message):
     chat_id = message.chat.id
     chat_title = message.chat.title
-
     await rq.set_chat(chat_id, chat_title)
+
+# Регистрируем чат в БД после добавления бота администратором
+@adm_r.my_chat_member(
+    ChatMemberUpdatedFilter(
+        member_status_changed=(IS_NOT_MEMBER | IS_MEMBER) >> ADMINISTRATOR
+    )
+)
+async def bot_added_as_admin(update: ChatMemberUpdated):
+    root_id = await get_id_chat_root()
+    await update.bot.send_message(chat_id=int(root_id),
+                                   text=f'Бот стал администратором группы'
+                                        f'\n\n<b>Название группы:</b>'
+                                        f'\n{update.chat.title}'
+                                        f'\n<b>ID группы:</b> {update.chat.id}'
+                                        f'\n<b>Тип группы:</b> {update.chat.type}')
+    chat_id = update.chat.id
+    chat_title = update.chat.title
+    await rq.set_chat(chat_id, chat_title)
+
 
 
 # Очищает БД

@@ -1,6 +1,6 @@
 # Импорт функций из библиотек
 from aiogram import Router, F
-from aiogram.filters import CommandStart, Command, ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER
+from aiogram.filters import CommandStart, Command, ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER, ADMINISTRATOR
 from aiogram.types import Message, ContentType, ChatMemberUpdated, FSInputFile
 
 # Импорт из файлов
@@ -33,13 +33,13 @@ async def get_member(message: Message):
 
     await message.answer(message_text)
 
-
-# Добавляем пользователя в бд после вступления
+# Добавляем пользователя в бд после вступления в чат
 @router.chat_member(ChatMemberUpdatedFilter(IS_NOT_MEMBER >> IS_MEMBER))
 async def get_member(update: ChatMemberUpdated):
     chat = update.chat
     from_user = update.from_user
     status = await rq.set_user_chat(from_user.id, chat.id, chat.title)
+    await rq.set_user(from_user.id, from_user.username)
 
     match status:
         case True:
