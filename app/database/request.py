@@ -5,6 +5,7 @@
 # Импорт функций из библиотек
 from sqlalchemy import select
 from sqlalchemy import func
+from sqlalchemy.sql import text
 
 # Импорт из файлов
 from app.database.models import async_session
@@ -99,3 +100,31 @@ async def reg_admin(tg_id, username, first_name):
         if not admin:
             session.add(Admin(tg_id=tg_id, username=username, first_name=first_name))
             await session.commit()
+
+
+# Работа с репутацией
+# Функция обращается к БД и выгружает значение очков репутации
+async def check_karma(tg_id, tg_id_recipient):
+    async with async_session() as session:
+        sender = await session.scalar(select(User).where(User.tg_id == tg_id))
+        recipitent = await session.scalar(select(User).where(User.tg_id == tg_id_recipient))
+
+        if sender and recipitent:
+            text_recipitent = text(f"SELECT tg_id, karma_capital FROM users WHERE tg_id = {tg_id_recipient}")
+            text_sender = text(f"SELECT tg_id, karma_value FROM users WHERE tg_id = {tg_id}")
+            karma_sender = await session.execute(text_sender)
+            karma_recipitent = await session.execute(text_recipitent)
+            await session.commit()
+            return karma_sender, karma_recipitent
+
+
+# Функция обновляет репутацию пользователя и уменьшает очки репутации у отправителя
+async def update_karma(id_send, send_new_karma,
+                       recipient_id, recipient_new_karma):
+    async with async_session() as session:
+        s = await session.scalar(select(User).where(User.tg_id == id_send))
+        s.karma_value = int(send_new_karma)
+        r = await session.scalar(select(User).where(User.tg_id == recipient_id))
+        r.karma_capital = int(recipient_new_karma)
+        session.add(s, r)
+        await session.commit()

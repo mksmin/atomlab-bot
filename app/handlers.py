@@ -80,4 +80,54 @@ async def get_timing(message: Message):
 async def get_timing(message: Message):
     await message.answer('Расписание можно получить только через чат компетенции')
 
+
 # /-- timing end--/
+
+
+# /-- karma start --/
+# Функция увеличения репутации за помощь
+@router.message(F.reply_to_message,
+                F.text.lower().contains('+rep'),
+                CheckChatBot(chat_type=["group", "supergroup"]))
+async def add_rep(message: Message):
+    id_recipient = message.reply_to_message.from_user.id
+    id_sender = message.from_user.id
+    if id_recipient == message.bot.id:
+        await message.reply(f'Боту нельзя поднять репутацию, но спасибо, что ты ценишь его работу')
+
+    elif id_recipient == id_sender:
+        await message.reply(f'Самому себе нельзя поднять репутацию')
+
+    else:
+        result = await rq.check_karma(id_sender, id_recipient)
+        dict_value = {
+            'send': '',
+            'recipitent': '',
+        }
+
+        for ind in range(2):
+            for i, v in result[ind]:
+                dict_new = {
+                    'ID': i,
+                    'karma': v
+                }
+                index = list(dict_value.keys())
+                dict_value.update({
+                    index[ind]: dict_new
+                })
+        else:
+            dict_value['send']['karma'] = str(int(dict_value['send']['karma']) - 1)
+            if int(dict_value['send']['karma']) < 0:
+                await message.reply(f'Упс! У тебя закончились очки репутации')
+            else:
+                send_id, send_karma = dict_value['send']['ID'], dict_value['send']['karma']
+                recip_id, recip_karma = dict_value['recipitent']['ID'], dict_value['recipitent']['karma']
+                dict_value['recipitent']['karma'] = str(int(recip_karma) + 1)
+                await rq.update_karma(send_id, send_karma,
+                                      recip_id, recip_karma)
+                await message.reply(f'Репутация @{message.reply_to_message.from_user.username} повышена. '
+                                    f'У тебя осталось очков репутации - <b>{dict_value['send']['karma']}</b>'
+                                    f'\n\nУзнать какая репутация - нельзя')
+
+
+# /-- karma end --/
