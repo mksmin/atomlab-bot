@@ -33,7 +33,11 @@ async def on_startup(dispatcher):
 
 # Запускаем бота при условии запуска run.py и включаем логгирование
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)  # Логгирование. Отключить после продакшена
+    FORMAT = '%(asctime)s __ %(message)s'
+    # logging.basicConfig(filename='mybot.log', level=logging.INFO,
+    #                     format=FORMAT)  # Логгирование. Отключить после продакшена
+    logging.basicConfig(level=logging.INFO,
+                        format=FORMAT)
     try:
         asyncio.run(main())
     except KeyboardInterrupt:

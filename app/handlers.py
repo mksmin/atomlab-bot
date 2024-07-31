@@ -1,6 +1,6 @@
 # Импорт функций из библиотек
 from aiogram import Router, F
-from aiogram.filters import CommandStart, Command, ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER, ADMINISTRATOR
+from aiogram.filters import CommandStart, Command, ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER, ADMINISTRATOR, KICKED, LEFT, RESTRICTED, MEMBER, CREATOR
 from aiogram.types import Message, ContentType, ChatMemberUpdated, FSInputFile
 
 # Импорт из файлов
@@ -33,11 +33,17 @@ async def get_member(message: Message):
 
     await message.answer(message_text)
 
+
 # Добавляем пользователя в бд после вступления в чат
-@router.chat_member(ChatMemberUpdatedFilter(IS_NOT_MEMBER >> IS_MEMBER))
+@router.chat_member(ChatMemberUpdatedFilter(
+    member_status_changed=
+    (KICKED | LEFT | -RESTRICTED)
+    >>
+    (+RESTRICTED | MEMBER)
+))
 async def get_member(update: ChatMemberUpdated):
     chat = update.chat
-    from_user = update.from_user
+    from_user = update.new_chat_member.user
     status = await rq.set_user_chat(from_user.id, chat.id, chat.title)
     await rq.set_user(from_user.id, from_user.username)
 
@@ -52,13 +58,13 @@ async def get_member(update: ChatMemberUpdated):
             else:
                 username_ = f'{from_user.first_name} (@{from_user.username})'
 
-            message_text = (f'Привет, {username_}!\n'
+            message_text = (f'Привет, {from_user.username}!\n'
                             f'Учиться можно только на одном направлении\n\n'
                             f'Я отправил админу сообщение, он свяжется с тобой и удалит тебя из других чатов')
             await update.answer(message_text)
 
             root_id = await get_id_chat_root()
-            data_ = await rq.get_chats(update.from_user.id)
+            data_ = await rq.get_chats(from_user.id)
             await update.bot.send_message(chat_id=int(root_id),
                                           text=f'{username_}'
                                                f'\nвступил в несколько чатов: '
@@ -128,6 +134,5 @@ async def add_rep(message: Message):
                 await message.reply(f'Репутация @{message.reply_to_message.from_user.username} повышена. '
                                     f'У тебя осталось очков репутации - <b>{dict_value['send']['karma']}</b>'
                                     f'\n\nУзнать какая репутация - нельзя')
-
 
 # /-- karma end --/
