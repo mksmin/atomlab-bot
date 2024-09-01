@@ -1,27 +1,34 @@
-# Делаю фильтры и middlewares
-import asyncio
-from typing import Union
+"""
+This module for filtering and middlewares
+"""
 
+# import functions from libraries
 from aiogram.filters import Filter
 from aiogram.types import Message
+
+# import functions from my modules
 from config.config import get_tokens
 
 
-async def get_id_root():
-    root_id = await get_tokens("ROOT")
-    return root_id
-
-
 class RootProtect(Filter):
-    async def __call__(self, message: Message):
-        root_id = await get_id_root()
-        return str(message.from_user.id) in root_id
+    """
+    The class for filtering decorator
+    accept user's id, return True if id is root-user
+    """
+    async def __call__(self, message: Message) -> bool:
+        root_id = await get_tokens("ROOT")
+        return str(message.from_user.id) == root_id
 
 
 # Класс для фильтрации обращения к боту
 # Использовать private или group and supergroup
 class CheckChatBot(Filter):
-    def __init__(self, chat_type: Union[str, list]):
+    """
+    The class for filtering decorator
+    waiting for type of chat in private, group or supergroup
+    """
+
+    def __init__(self, chat_type: str | list):
         self.chat_type = chat_type
 
     async def __call__(self, message: Message) -> bool:

@@ -17,6 +17,10 @@
 — pandas<br>
 — openpyxl
 
+```
+pip install -r requirements.txt
+```
+
 ## Настройка
 
 Создается .env файл в папке config

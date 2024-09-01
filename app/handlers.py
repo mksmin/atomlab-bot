@@ -7,7 +7,7 @@ from aiogram.types import Message, ContentType, ChatMemberUpdated, FSInputFile
 from app.middlewares import CheckChatBot
 import app.database.request as rq
 from app.adminpanel import get_id_chat_root
-from app.user_requests import get_time
+from app.user_requests import get_program_sheldue
 
 router = Router()  # обработчик хэндлеров
 
@@ -17,21 +17,6 @@ async def get_start(message: Message):
     from_user = message.from_user
     await rq.set_user(from_user.id, from_user.username)
     await message.answer(text=f'Привет, {from_user.first_name}!')
-
-
-# Временная команда, которая регистрирует пользователя в бд
-@router.message(Command('addme'))
-async def get_member(message: Message):
-    chat = message.chat
-    from_user = message.from_user
-    message_text = f'Добавил в бд'
-
-    await rq.set_user(from_user.id, from_user.username)
-
-    if chat.title:
-        await rq.set_user_chat(from_user.id, message.chat.id, message.chat.title)
-
-    await message.answer(message_text)
 
 
 # Добавляем пользователя в бд после вступления в чат
@@ -44,39 +29,56 @@ async def get_member(message: Message):
 async def get_member(update: ChatMemberUpdated):
     chat = update.chat
     from_user = update.new_chat_member.user
-    status = await rq.set_user_chat(from_user.id, chat.id, chat.title)
+    count_chats = await rq.set_user_chat(from_user.id, chat.id) # Переписать функцию проверки количества чатов
     await rq.set_user(from_user.id, from_user.username)
 
-    match status:
-        case True:
-            message_text = f'Привет, {from_user.first_name}!'
-            await update.answer(message_text)
+    if from_user.username is None:
+        username_ = f'{from_user.first_name}'
+    else:
+        username_ = f'{from_user.first_name} (@{from_user.username})'
+    if count_chats > 1:
+        message_text = f'Привет, {username_}!'
+        await update.answer(message_text)
+    else:
+        message_text = (f'Привет, {from_user.username}!\n'
+                        f'Учиться можно только на одном направлении\n\n'
+                        f'Я отправил админу сообщение, он свяжется с тобой и удалит тебя из других чатов')
+        await update.answer(message_text)
 
-        case False:
-            if from_user.username is None:
-                username_ = f'{from_user.first_name}'
-            else:
-                username_ = f'{from_user.first_name} (@{from_user.username})'
+        root_id = await get_id_chat_root()
+        data_ = await rq.get_chats(from_user.id)
+        await update.bot.send_message(chat_id=int(root_id),
+                                      text=f'{username_}'
+                                           f'\nвступил в несколько чатов: '
+                                           f'\n\n{data_}'
+                                           f'\n\nСвяжись с ним, чтобы обсудить детали')
 
-            message_text = (f'Привет, {from_user.username}!\n'
-                            f'Учиться можно только на одном направлении\n\n'
-                            f'Я отправил админу сообщение, он свяжется с тобой и удалит тебя из других чатов')
-            await update.answer(message_text)
 
-            root_id = await get_id_chat_root()
-            data_ = await rq.get_chats(from_user.id)
-            await update.bot.send_message(chat_id=int(root_id),
-                                          text=f'{username_}'
-                                               f'\nвступил в несколько чатов: '
-                                               f'\n\n{data_}'
-                                               f'\n\nСвяжись с ним, чтобы обсудить детали')
+# Временная команда, которая регистрирует пользователя в бд
+@router.message(Command('addme'))
+async def tmp_get_member(message: Message):
+    from_user = message.from_user
+    message_text = f'Добавил в бд'
+
+    await rq.set_user(from_user.id, from_user.username)
+    count_chats = await rq.set_user_chat(from_user.id, message.chat.id)
+    if count_chats > 1:
+        message_text = f'ВНИМАНИЕ! Больше одного чата!'
+        root_id = await get_id_chat_root()
+        data_ = await rq.get_chats(from_user.id)
+        await message.bot.send_message(chat_id=int(root_id),
+                                      text=f'{message.from_user.username}'
+                                           f'\nвступил в несколько чатов: '
+                                           f'\n\n{data_}'
+                                           f'\n\nСвяжись с ним, чтобы обсудить детали')
+    await message.answer(message_text)
 
 
 # /-- timing start --/
 # Функция получения расписания через чат компетенции
 @router.message(Command('timing'), CheckChatBot(chat_type=["group", "supergroup"]))
 async def get_timing(message: Message):
-    result = await get_time(message.chat.title)
+    result = await get_program_sheldue(message.chat.title)
     await message.answer(result, parse_mode='HTML')
 
 

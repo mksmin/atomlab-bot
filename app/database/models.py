@@ -4,7 +4,7 @@
 import asyncio
 
 # Импорт функций из библиотек
-from sqlalchemy import BigInteger, String, ForeignKey
+from sqlalchemy import Column, BigInteger, String, Integer, ForeignKey
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 
@@ -25,37 +25,27 @@ class Base(AsyncAttrs, DeclarativeBase):  # Основной класс, кот�
 class User(Base):  # Таблица, которая хранит юзеров
     __tablename__ = 'users'
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    tg_id = mapped_column(BigInteger)
-    tg_username: Mapped[str] = mapped_column(String(30))
-    karma_value: Mapped[int] = mapped_column(default=5)
-    karma_capital: Mapped[int] = mapped_column(default=0)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    tg_id = mapped_column(BigInteger, nullable=False, unique=True)
+    tg_username: Mapped[str] = mapped_column(String(30), nullable=True)
+    karma_start_value: Mapped[int] = mapped_column(nullable=False, default=5)
+    total_karma: Mapped[int] = mapped_column(nullable=False, default=0)
 
 
 class Chat(Base):  # таблица с чатами, в которых бот админ
     __tablename__ = 'chats'
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    chat_id = mapped_column(BigInteger)
-    chat_title: Mapped[str] = mapped_column(String(120))
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    chat_id = mapped_column(BigInteger, nullable=False, unique=True)
+    chat_title: Mapped[str] = mapped_column(String(120), nullable=True, default='null')
 
 
 class ChatUsers(Base):  # Таблица, которая связывает конкретного пользователя, с конкретным чатом
-    __tablename__ = 'chat_and_users'
+    __tablename__ = 'chatAndUsers'
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    tg_id = mapped_column(BigInteger)
-    chat_id = mapped_column(BigInteger)
-    chat_title: Mapped[str] = mapped_column(String(120))
-
-
-class Admin(Base):
-    __tablename__ = 'admins'
-    id: Mapped[int] = mapped_column(primary_key=True)
-    tg_id = mapped_column(BigInteger)
-    username: Mapped[str] = mapped_column(String(30))
-    first_name: Mapped[str] = mapped_column(String(20))
-
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    tg_id = mapped_column(BigInteger, ForeignKey('users.tg_id'), nullable=False)
+    chat_id = mapped_column(BigInteger, ForeignKey('chats.chat_id'), nullable=False)
 
 
 async def async_main():  # Функция создает все таблицы, если их не существует

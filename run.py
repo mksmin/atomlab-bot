@@ -1,7 +1,7 @@
 # Импорт библиотек
 import asyncio
 import logging
-import os
+
 
 # Импорт функций из библиотек
 from aiogram import Bot, Dispatcher
@@ -15,9 +15,15 @@ from config.config import get_tokens
 from app.database.models import async_main
 
 
-# Функция для запуска бота
-async def main():
-    # Собираем все для запуска бота
+async def main() -> None:
+    """
+    load token from .env
+    register decorators with Dispatcher()
+    create database
+    delete updates from telegram servers
+    start bot with token
+    :return: None
+    """
     bot_token = await get_tokens('TOKEN')
     bot = Bot(token=bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
@@ -27,15 +33,13 @@ async def main():
     await dp.start_polling(bot)
 
 
-async def on_startup(dispatcher):
+async def on_startup(dispatcher) -> None:
     await async_main()
     print('Started database')
 
-# Запускаем бота при условии запуска run.py и включаем логгирование
+# Run tg_bot and start log
 if __name__ == '__main__':
     FORMAT = '%(asctime)s __ %(message)s'
-    # logging.basicConfig(filename='mybot.log', level=logging.INFO,
-    #                     format=FORMAT)  # Логгирование. Отключить после продакшена
     logging.basicConfig(level=logging.INFO,
                         format=FORMAT)
     try:

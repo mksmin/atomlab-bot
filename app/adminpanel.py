@@ -1,11 +1,11 @@
-# Импорт функций из библиотек
+# import functions from libraries
 from aiogram import Router, F, Bot
 from aiogram.filters import Command, ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER, ADMINISTRATOR
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove, ChatMemberUpdated, ChatFullInfo
 from aiogram.fsm.context import FSMContext
 
 
-# Импорт из файлов
+# import functions from my modules
 from app.middlewares import RootProtect, CheckChatBot
 from config.config import get_tokens
 import app.database.request as rq
@@ -13,33 +13,48 @@ from app.database.models import drop_all
 from app.statesuser import Send
 from app.keyboards import keyboard_send_mess
 
-adm_r = Router()  # обработчик хэндлеров
+adm_r = Router()  # handler
 adm_r.my_chat_member.filter(F.chat.type.in_({'group', 'supergroup'}))
 
 
-async def get_id_chat_root():
+async def get_id_chat_root() -> str:
+    """
+    :return: id of root-chat as str
+    """
     return await get_tokens("ROOT_CHAT")
 
 
 @adm_r.message(Command('rpanel'), RootProtect())
-async def get_panel(message: Message):
-    await message.answer(f'Ты вызвал панель владельца')
-    await message.answer(f'твой ID: {message.from_user.id}'
-                         f'\nID чата: {message.chat.id}')
+async def get_panel(message: Message) -> None:
+    """
+    func for call root panel
+    :param message:
+    :return: None
+    """
+    text_for_message = (f'Ты вызвал панель владельца\n\n'
+                        f'Твой ID: {message.from_user.id}\n'
+                        f'ID чата: {message.chat.id}')
+    await message.answer(text_for_message)
 
 
 @adm_r.message(Command('chatid'), RootProtect())
-async def get_chat_id(message: Message):
-    root_id = await get_tokens("ROOT_CHAT")
-    await message.bot.send_message(chat_id=int(root_id),
-                                   text=f'Ты запросил айди чата:\n'
+async def get_chat_id(message: Message) -> None:
+    """
+    func get chatid of where root-user used the command
+    and sends it to the private chat of the root-user
+    :param message:
+    :return: None
+    """
+    root_id = int(await get_id_chat_root())
+    await message.bot.send_message(chat_id=root_id,
+                                   text=f'Ты запросил ID чата\n\n'
                                         f'Чат id - {message.chat.id}\n'
                                         f'Название: {message.chat.title}')
 
 
 # Регистрация чата вручную рутпользователем
 @adm_r.message(Command('addchat'), RootProtect())
-async def add_chat_sql(message: Message):
+async def register_chat_to_db(message: Message) -> None:
     chat_id = message.chat.id
     chat_title = message.chat.title
     await rq.set_chat(chat_id, chat_title)
@@ -62,6 +77,7 @@ async def bot_added_as_admin(update: ChatMemberUpdated):
     chat_id = update.chat.id
     chat_title = update.chat.title
     await rq.set_chat(chat_id, chat_title)
+
 
 
 #
@@ -129,7 +145,7 @@ async def cancel_send(callback: CallbackQuery, state: FSMContext):
 @adm_r.message(Command('checkme'), RootProtect())
 async def checkme(message: Message):
     from_user = message.from_user
-    status = await rq.set_user_chat(message.from_user.id, message.chat.id, message.chat.title)
+    status = await rq.set_user_chat(message.from_user.id, message.chat.id)
     data_ = await rq.get_chats(message.from_user.id)
     await message.answer(text=f'чаты: {data_}\n'
                               f'значение - {status}')

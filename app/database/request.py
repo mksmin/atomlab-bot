@@ -9,33 +9,25 @@ from sqlalchemy.sql import text
 
 # Импорт из файлов
 from app.database.models import async_session
-from app.database.models import User, ChatUsers, Chat, Admin
+from app.database.models import User, ChatUsers, Chat
 
 
 # Функция обращается к БД и проверяет связь пользователя и чата в бд
 # Если такой связи нет - она создается
 # Если пользователь состоит в 2х и более чатах, возвращает значение True
-async def set_user_chat(tg_id, chat_id, chat_title):
+async def set_user_chat(tg_id, chat_id) -> int:
     async with async_session() as session:
-        if not tg_id == chat_id:  # Фильтр, чтобы в базу не добавлялся чат пользователя с ботом
-            setsql = True
-        else:
-            setsql = False
+        setsql = False if tg_id == chat_id else True  # Фильтр, чтобы в базу не добавлялся чат пользователя с ботом
 
-        user = await session.scalar(select(ChatUsers).where(ChatUsers.tg_id == tg_id, ChatUsers.chat_id == chat_id))
+        user_in_db = await session.scalar(
+            select(ChatUsers).where(ChatUsers.tg_id == tg_id, ChatUsers.chat_id == chat_id))
 
-        if not user and setsql:
-            session.add(ChatUsers(tg_id=tg_id, chat_id=chat_id, chat_title=chat_title))
+        if not user_in_db and setsql:
+            session.add(ChatUsers(tg_id=tg_id, chat_id=chat_id))
             await session.commit()  # сохраняем информацию
-        else:
-            pass
 
         count_value = await session.scalar(select(func.count()).select_from(ChatUsers).where(ChatUsers.tg_id == tg_id))
-
-        if count_value <= 1:
-            return True
-        else:
-            return False
+        return count_value
 
 
 # Используем контекстный менеджер, чтобы сессия закрывалась после исполнения функции
@@ -64,15 +56,23 @@ async def set_chat(chat_id, chat_title):
 async def get_chats(tg_id):  # Получаю список чатов, в которые вступил конкретный пользователь
     async with async_session() as session:
         count_value = await session.scalar(select(func.count()).select_from(ChatUsers).where(ChatUsers.tg_id == tg_id))
-        data = await session.execute(select(ChatUsers.chat_title).where(ChatUsers.tg_id == tg_id))
-        data_fetch = data.fetchall()
+        select_request = select(Chat.chat_title
+                                ).select_from(Chat
+                                              ).join(ChatUsers, ChatUsers.chat_id == Chat.chat_id
+                                                     ).where(ChatUsers.tg_id == tg_id)
+        data_from_db = await session.execute(select_request)
+        chats_titles_list = data_from_db.fetchall()
         data_list = []
         index = 0
-        while index < count_value:
-            first_strip = str(data_fetch[index]).strip("()")
+
+        for name in chats_titles_list:
+            first_strip = str(name).strip("()")
             second_strip = f'— {first_strip.strip(",'")}'
             data_list.append(second_strip)
-            index += 1
+
+        # while index < count_value:
+        #     index += 1
+
         data_return = '\n'.join(map(str, data_list))
         return data_return
 
@@ -93,13 +93,13 @@ async def get_list_chats():  # Получаю список id всех чато�
         return data_list
 
 
-# Функция регистрации администраторов
-async def reg_admin(tg_id, username, first_name):
-    async with async_session() as session:
-        admin = await session.scalar(select(Admin).where(Admin.tg_id == tg_id))
-        if not admin:
-            session.add(Admin(tg_id=tg_id, username=username, first_name=first_name))
-            await session.commit()
+# # Функция регистрации администраторов
+# async def reg_admin(tg_id, username, first_name):
+#     async with async_session() as session:
+#         admin = await session.scalar(select(Admin).where(Admin.tg_id == tg_id))
+#         if not admin:
+#             session.add(Admin(tg_id=tg_id, username=username, first_name=first_name))
+#             await session.commit()
 
 
 # Работа с репутацией
@@ -110,12 +110,12 @@ async def check_karma(tg_id, tg_id_recipient):
         recipitent = await session.scalar(select(User).where(User.tg_id == tg_id_recipient))
 
         if sender and recipitent:
-            text_recipitent = text(f"SELECT tg_id, karma_capital FROM users WHERE tg_id = {tg_id_recipient}")
-            text_sender = text(f"SELECT tg_id, karma_value FROM users WHERE tg_id = {tg_id}")
+            text_recipient = text(f"SELECT tg_id, total_karma FROM users WHERE tg_id = {tg_id_recipient}")
+            text_sender = text(f"SELECT tg_id, karma_start_value FROM users WHERE tg_id = {tg_id}")
             karma_sender = await session.execute(text_sender)
-            karma_recipitent = await session.execute(text_recipitent)
+            karma_recipient = await session.execute(text_recipient)
             await session.commit()
-            return karma_sender, karma_recipitent
+            return karma_sender, karma_recipient
 
 
 # Функция обновляет репутацию пользователя и уменьшает очки репутации у отправителя
