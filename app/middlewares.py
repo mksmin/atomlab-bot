@@ -2,11 +2,11 @@
 This module for filtering and middlewares
 """
 
-# import functions from libraries
+# import from libraries
 from aiogram.filters import Filter
 from aiogram.types import Message
 
-# import functions from my modules
+# import from modules
 from config.config import get_tokens
 
 

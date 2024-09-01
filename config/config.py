@@ -26,9 +26,16 @@ async def get_tokens(name_of_token: str) -> str:
         print("No .env file found")
 
 
+async def get_id_chat_root() -> str:
+    """
+    :return: id of root-chat as str
+    """
+    return await get_tokens("ROOT_CHAT")
+
+
 async def test_get_tokens() -> None:
     """
-    the auto-test of the get_tokens function
+    the test of the get_tokens function
     """
     names_massive = ['TOKEN', 'PostSQL_host', 'ROOT', 'ROOT_CHAT']
 

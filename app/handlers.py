@@ -1,22 +1,22 @@
-# Импорт функций из библиотек
+# import from libraries
 from aiogram import Router, F
 from aiogram.filters import CommandStart, Command, ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER, ADMINISTRATOR, KICKED, LEFT, RESTRICTED, MEMBER, CREATOR
 from aiogram.types import Message, ContentType, ChatMemberUpdated, FSInputFile
 
-# Импорт из файлов
+# import from modules
 from app.middlewares import CheckChatBot
 import app.database.request as rq
-from app.adminpanel import get_id_chat_root
-from app.user_requests import get_program_sheldue
+from config.config import get_id_chat_root
+from app.user_requests import get_program_schedule
 
-router = Router()  # обработчик хэндлеров
+router = Router()  # handler
 
 
-@router.message(CommandStart())  # Стартовый хэндлер
-async def get_start(message: Message):
+@router.message(CommandStart())  # start handler
+async def cmd_start(message: Message):
     from_user = message.from_user
     await rq.set_user(from_user.id, from_user.username)
-    await message.answer(text=f'Привет, {from_user.first_name}!')
+    await message.answer(f'Привет, {from_user.first_name}!')
 
 
 # Добавляем пользователя в бд после вступления в чат
@@ -46,11 +46,11 @@ async def get_member(update: ChatMemberUpdated):
         await update.answer(message_text)
 
         root_id = await get_id_chat_root()
-        data_ = await rq.get_chats(from_user.id)
+        chats_titles_list = await rq.get_chats(from_user.id)
         await update.bot.send_message(chat_id=int(root_id),
                                       text=f'{username_}'
                                            f'\nвступил в несколько чатов: '
-                                           f'\n\n{data_}'
+                                           f'\n\n{chats_titles_list}'
                                            f'\n\nСвяжись с ним, чтобы обсудить детали')
 
 
@@ -78,7 +78,7 @@ async def tmp_get_member(message: Message):
 # Функция получения расписания через чат компетенции
 @router.message(Command('timing'), CheckChatBot(chat_type=["group", "supergroup"]))
 async def get_timing(message: Message):
-    result = await get_program_sheldue(message.chat.title)
+    result = await get_program_schedule(message.chat.title)
     await message.answer(result, parse_mode='HTML')
 
 
@@ -97,21 +97,21 @@ async def get_timing(message: Message):
 @router.message(F.reply_to_message,
                 F.text.lower().contains('+rep'),
                 CheckChatBot(chat_type=["group", "supergroup"]))
-async def add_rep(message: Message):
+async def add_rep_to_user(message: Message):
     id_recipient = message.reply_to_message.from_user.id
     id_sender = message.from_user.id
     if id_recipient == message.bot.id:
-        await message.reply(f'Боту нельзя поднять репутацию, но спасибо, что ты ценишь его работу')
-
+        await message.reply('Боту нельзя поднять репутацию, но спасибо, что ты ценишь его работу')
     elif id_recipient == id_sender:
-        await message.reply(f'Самому себе нельзя поднять репутацию')
+        await message.reply('Самому себе нельзя поднять репутацию')
 
     else:
         result = await rq.check_karma(id_sender, id_recipient)
         dict_value = {
             'send': '',
-            'recipitent': '',
+            'recipient': '',
         }
+        keys_of_dict = list(dict_value.keys())
 
         for ind in range(2):
             for i, v in result[ind]:
@@ -119,9 +119,8 @@ async def add_rep(message: Message):
                     'ID': i,
                     'karma': v
                 }
-                index = list(dict_value.keys())
                 dict_value.update({
-                    index[ind]: dict_new
+                    keys_of_dict[ind]: dict_new
                 })
         else:
             dict_value['send']['karma'] = str(int(dict_value['send']['karma']) - 1)
@@ -129,8 +128,8 @@ async def add_rep(message: Message):
                 await message.reply(f'Упс! У тебя закончились очки репутации')
             else:
                 send_id, send_karma = dict_value['send']['ID'], dict_value['send']['karma']
-                recip_id, recip_karma = dict_value['recipitent']['ID'], dict_value['recipitent']['karma']
-                dict_value['recipitent']['karma'] = str(int(recip_karma) + 1)
+                recip_id, recip_karma = dict_value['recipient']['ID'], dict_value['recipient']['karma']
+                dict_value['recipient']['karma'] = str(int(recip_karma) + 1)
                 await rq.update_karma(send_id, send_karma,
                                       recip_id, recip_karma)
                 await message.reply(f'Репутация @{message.reply_to_message.from_user.username} повышена. '

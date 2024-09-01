@@ -1,14 +1,13 @@
-# Импорт библиотек
+# import libraries
 import asyncio
 import logging
 
-
-# Импорт функций из библиотек
+# import from libraries
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
-# Импорт из файлов
+# import from modules
 from app.handlers import router
 from app.adminpanel import adm_r
 from config.config import get_tokens

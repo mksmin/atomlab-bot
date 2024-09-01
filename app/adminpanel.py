@@ -7,7 +7,7 @@ from aiogram.fsm.context import FSMContext
 
 # import functions from my modules
 from app.middlewares import RootProtect, CheckChatBot
-from config.config import get_tokens
+from config.config import get_tokens, get_id_chat_root
 import app.database.request as rq
 from app.database.models import drop_all
 from app.statesuser import Send
@@ -17,19 +17,10 @@ adm_r = Router()  # handler
 adm_r.my_chat_member.filter(F.chat.type.in_({'group', 'supergroup'}))
 
 
-async def get_id_chat_root() -> str:
-    """
-    :return: id of root-chat as str
-    """
-    return await get_tokens("ROOT_CHAT")
-
-
 @adm_r.message(Command('rpanel'), RootProtect())
 async def get_panel(message: Message) -> None:
     """
     func for call root panel
-    :param message:
-    :return: None
     """
     text_for_message = (f'Ты вызвал панель владельца\n\n'
                         f'Твой ID: {message.from_user.id}\n'
@@ -42,8 +33,6 @@ async def get_chat_id(message: Message) -> None:
     """
     func get chatid of where root-user used the command
     and sends it to the private chat of the root-user
-    :param message:
-    :return: None
     """
     root_id = int(await get_id_chat_root())
     await message.bot.send_message(chat_id=root_id,
@@ -52,7 +41,7 @@ async def get_chat_id(message: Message) -> None:
                                         f'Название: {message.chat.title}')
 
 
-# Регистрация чата вручную рутпользователем
+# manual register chat by root-user
 @adm_r.message(Command('addchat'), RootProtect())
 async def register_chat_to_db(message: Message) -> None:
     chat_id = message.chat.id
@@ -79,10 +68,7 @@ async def bot_added_as_admin(update: ChatMemberUpdated):
     await rq.set_chat(chat_id, chat_title)
 
 
-
-#
-
-# Очищает БД
+# drop sheets from database
 @adm_r.message(Command('dropall'), RootProtect())
 async def rm_database_sheets():
     await drop_all()
@@ -143,7 +129,7 @@ async def cancel_send(callback: CallbackQuery, state: FSMContext):
 
 # Временная функция для проверки (удалить после использования)
 @adm_r.message(Command('checkme'), RootProtect())
-async def checkme(message: Message):
+async def tmp_check_me_in_db(message: Message):
     from_user = message.from_user
     status = await rq.set_user_chat(message.from_user.id, message.chat.id)
     data_ = await rq.get_chats(message.from_user.id)
@@ -165,8 +151,3 @@ async def checkme(message: Message):
                             f'Я отправил админу сообщение, он свяжется с тобой и удалит тебя из других чатов')
             await message.answer(message_text)
 
-
-@adm_r.message(Command('reguser'))
-async def reg_user(message: Message):
-    list = await message.bot.get_me()
-    print(list)

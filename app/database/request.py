@@ -1,13 +1,15 @@
-# Здесь создаю функции запросов к БД
+"""
+Module with functions for requesting data from database
+"""
 
-# Импорт библиотек
+# import libraries
 
-# Импорт функций из библиотек
+# import from libraries
 from sqlalchemy import select
 from sqlalchemy import func
 from sqlalchemy.sql import text
 
-# Импорт из файлов
+# import from modules
 from app.database.models import async_session
 from app.database.models import User, ChatUsers, Chat
 
@@ -17,14 +19,14 @@ from app.database.models import User, ChatUsers, Chat
 # Если пользователь состоит в 2х и более чатах, возвращает значение True
 async def set_user_chat(tg_id, chat_id) -> int:
     async with async_session() as session:
-        setsql = False if tg_id == chat_id else True  # Фильтр, чтобы в базу не добавлялся чат пользователя с ботом
+        is_private_chat = (tg_id == chat_id)  # Фильтр, чтобы в базу не добавлялся чат пользователя с ботом
 
         user_in_db = await session.scalar(
             select(ChatUsers).where(ChatUsers.tg_id == tg_id, ChatUsers.chat_id == chat_id))
 
-        if not user_in_db and setsql:
+        if not user_in_db and not is_private_chat:
             session.add(ChatUsers(tg_id=tg_id, chat_id=chat_id))
-            await session.commit()  # сохраняем информацию
+            await session.commit()  # save
 
         count_value = await session.scalar(select(func.count()).select_from(ChatUsers).where(ChatUsers.tg_id == tg_id))
         return count_value
@@ -33,7 +35,7 @@ async def set_user_chat(tg_id, chat_id) -> int:
 # Используем контекстный менеджер, чтобы сессия закрывалась после исполнения функции
 # Функция сохраняет id и никнейм пользователя в БД
 # Need FIX: Если пользователь сменит никнейм -- бд не обновится (нужно ли это?)
-async def set_user(tg_id, username):
+async def set_user(tg_id, username: str = 'Null'):
     async with async_session() as session:
         user = await session.scalar(select(User).where(User.tg_id == tg_id))
 
@@ -104,23 +106,27 @@ async def get_list_chats():  # Получаю список id всех чато�
 
 # Работа с репутацией
 # Функция обращается к БД и выгружает значение очков репутации
-async def check_karma(tg_id, tg_id_recipient):
+async def check_karma(tg_id_sender, tg_id_recipient):
     async with async_session() as session:
-        sender = await session.scalar(select(User).where(User.tg_id == tg_id))
+        sender = await session.scalar(select(User).where(User.tg_id == tg_id_sender))
         recipitent = await session.scalar(select(User).where(User.tg_id == tg_id_recipient))
 
-        if sender and recipitent:
-            text_recipient = text(f"SELECT tg_id, total_karma FROM users WHERE tg_id = {tg_id_recipient}")
-            text_sender = text(f"SELECT tg_id, karma_start_value FROM users WHERE tg_id = {tg_id}")
-            karma_sender = await session.execute(text_sender)
-            karma_recipient = await session.execute(text_recipient)
-            await session.commit()
-            return karma_sender, karma_recipient
+        if sender and not recipitent:
+            await set_user(tg_id_sender)
+        elif sender and not recipitent:
+            await set_user(tg_id_recipient)
+
+        text_recipient = text(f"SELECT tg_id, total_karma FROM users WHERE tg_id = {tg_id_recipient}")
+        text_sender = text(f"SELECT tg_id, karma_start_value FROM users WHERE tg_id = {tg_id_sender}")
+        karma_sender = await session.execute(text_sender)
+        karma_recipient = await session.execute(text_recipient)
+        await session.commit()
+        return karma_sender, karma_recipient
 
 
 # Функция обновляет репутацию пользователя и уменьшает очки репутации у отправителя
 async def update_karma(id_send, send_new_karma,
-                       recipient_id, recipient_new_karma):
+                       recipient_id, recipient_new_karma) -> None:
     async with async_session() as session:
         s = await session.scalar(select(User).where(User.tg_id == id_send))
         s.karma_value = int(send_new_karma)
