@@ -8,11 +8,18 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 
 
-async def get_program_sheldue(tg_title):
+async def get_program_schedule(tg_title):
     """
     function accept telegram chat's id,
     connect to DB and accept name of file,
     return to user time of study program
+
+    WARNING: устаревшая версия кода, нужно связать с ID чатом,
+    и подгружать расписание исходя из этого
+    файлы можно назвать с ключом chat_id
+
+    Возможно хранить расписание в БД
+
     :param tg_title: int is id of telegram chat
     :return: ...
     """

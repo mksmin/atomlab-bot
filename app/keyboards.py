@@ -1,9 +1,9 @@
-# Импорт функций из библиотек
+# import from libraries
 from aiogram.types import (ReplyKeyboardMarkup,
                            KeyboardButton,
                            InlineKeyboardMarkup, InlineKeyboardButton)
 
-# Кнопки для подтверждения отправки сообщений во все чаты
+# buttons to confirm send message
 keyboard_send_mess = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='Отправить', callback_data='send'),
      InlineKeyboardButton(text='Отменить', callback_data='cancel')],

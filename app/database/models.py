@@ -1,28 +1,30 @@
-# Здесь подключаюсь к БД и создаю нужные таблицы
+"""
+Create tables in DataBase
+"""
 
-# Импорт библиотек
+# import libraries
 import asyncio
 
-# Импорт функций из библиотек
+# import from libraries
 from sqlalchemy import Column, BigInteger, String, Integer, ForeignKey
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 
-# Импорт из файлов
+# import from modules
 from config.config import get_tokens
 
-# Создаем подключение к БД
+# create engine and connection to DB
 post_host_token = asyncio.run(get_tokens('PostSQL_host'))
 engine = create_async_engine(url=post_host_token,
-                             echo=False)  # Создаем БД
-async_session = async_sessionmaker(engine)  # Подключаемся к БД
+                             echo=False)  # create engine
+async_session = async_sessionmaker(engine)  # create session func
 
 
-class Base(AsyncAttrs, DeclarativeBase):  # Основной класс, который дочерний к sqlalchemy
+class Base(AsyncAttrs, DeclarativeBase):  # main class
     pass
 
 
-class User(Base):  # Таблица, которая хранит юзеров
+class User(Base):  # table with data of users
     __tablename__ = 'users'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -32,7 +34,7 @@ class User(Base):  # Таблица, которая хранит юзеров
     total_karma: Mapped[int] = mapped_column(nullable=False, default=0)
 
 
-class Chat(Base):  # таблица с чатами, в которых бот админ
+class Chat(Base):  # table with data of chats
     __tablename__ = 'chats'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -48,11 +50,17 @@ class ChatUsers(Base):  # Таблица, которая связывает ко
     chat_id = mapped_column(BigInteger, ForeignKey('chats.chat_id'), nullable=False)
 
 
-async def async_main():  # Функция создает все таблицы, если их не существует
+async def async_main() -> None:
+    """
+    func create all tables in database
+    """
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
 
-async def drop_all():  # Удаляет все таблицы
+async def drop_all() -> None:
+    """
+    func drop all tables in database
+    """
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
