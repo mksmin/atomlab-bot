@@ -57,24 +57,17 @@ async def set_chat(chat_id, chat_title):
 
 async def get_chats(tg_id):  # Получаю список чатов, в которые вступил конкретный пользователь
     async with async_session() as session:
-        count_value = await session.scalar(select(func.count()).select_from(ChatUsers).where(ChatUsers.tg_id == tg_id))
-        select_request = select(Chat.chat_title
-                                ).select_from(Chat
-                                              ).join(ChatUsers, ChatUsers.chat_id == Chat.chat_id
-                                                     ).where(ChatUsers.tg_id == tg_id)
-        data_from_db = await session.execute(select_request)
+        request_to_sql = select(Chat.chat_title).select_from(Chat)
+        request_with_join = request_to_sql.join(ChatUsers, ChatUsers.chat_id == Chat.chat_id)
+        request_with_filter = request_with_join.where(ChatUsers.tg_id == tg_id)
+        data_from_db = await session.execute(request_with_filter)
+
         chats_titles_list = data_from_db.fetchall()
         data_list = []
-        index = 0
-
         for name in chats_titles_list:
             first_strip = str(name).strip("()")
             second_strip = f'— {first_strip.strip(",'")}'
             data_list.append(second_strip)
-
-        # while index < count_value:
-        #     index += 1
-
         data_return = '\n'.join(map(str, data_list))
         return data_return
 
@@ -109,12 +102,12 @@ async def get_list_chats():  # Получаю список id всех чато�
 async def check_karma(tg_id_sender, tg_id_recipient):
     async with async_session() as session:
         sender = await session.scalar(select(User).where(User.tg_id == tg_id_sender))
-        recipitent = await session.scalar(select(User).where(User.tg_id == tg_id_recipient))
+        recipient = await session.scalar(select(User).where(User.tg_id == tg_id_recipient))
 
-        if sender and not recipitent:
-            await set_user(tg_id_sender)
-        elif sender and not recipitent:
+        if sender and not recipient:
             await set_user(tg_id_recipient)
+        elif not sender and recipient:
+            await set_user(tg_id_sender)
 
         text_recipient = text(f"SELECT tg_id, total_karma FROM users WHERE tg_id = {tg_id_recipient}")
         text_sender = text(f"SELECT tg_id, karma_start_value FROM users WHERE tg_id = {tg_id_sender}")
@@ -129,8 +122,8 @@ async def update_karma(id_send, send_new_karma,
                        recipient_id, recipient_new_karma) -> None:
     async with async_session() as session:
         s = await session.scalar(select(User).where(User.tg_id == id_send))
-        s.karma_value = int(send_new_karma)
+        s.karma_start_value = int(send_new_karma)
         r = await session.scalar(select(User).where(User.tg_id == recipient_id))
-        r.karma_capital = int(recipient_new_karma)
+        r.total_karma = int(recipient_new_karma)
         session.add(s, r)
         await session.commit()

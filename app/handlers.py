@@ -103,8 +103,7 @@ async def add_rep_to_user(message: Message):
     if id_recipient == message.bot.id:
         await message.reply('Боту нельзя поднять репутацию, но спасибо, что ты ценишь его работу')
     elif id_recipient == id_sender:
-        await message.reply('Самому себе нельзя поднять репутацию')
-
+        await message.reply('Cебе нельзя поднять репутацию')
     else:
         result = await rq.check_karma(id_sender, id_recipient)
         dict_value = {
@@ -119,21 +118,21 @@ async def add_rep_to_user(message: Message):
                     'ID': i,
                     'karma': v
                 }
+
                 dict_value.update({
                     keys_of_dict[ind]: dict_new
                 })
         else:
-            dict_value['send']['karma'] = str(int(dict_value['send']['karma']) - 1)
-            if int(dict_value['send']['karma']) < 0:
+            sender_id, sender_karma = dict_value['send']['ID'], dict_value['send']['karma']
+            recipient_id, recipient_karma = dict_value['recipient']['ID'], dict_value['recipient']['karma']
+            if sender_karma <= 0:
                 await message.reply(f'Упс! У тебя закончились очки репутации')
             else:
-                send_id, send_karma = dict_value['send']['ID'], dict_value['send']['karma']
-                recip_id, recip_karma = dict_value['recipient']['ID'], dict_value['recipient']['karma']
-                dict_value['recipient']['karma'] = str(int(recip_karma) + 1)
-                await rq.update_karma(send_id, send_karma,
-                                      recip_id, recip_karma)
+                sender_karma -= 1
+                recipient_karma += 1
+                await rq.update_karma(sender_id, sender_karma,
+                                      recipient_id, recipient_karma)
                 await message.reply(f'Репутация @{message.reply_to_message.from_user.username} повышена. '
-                                    f'У тебя осталось очков репутации - <b>{dict_value['send']['karma']}</b>'
-                                    f'\n\nУзнать какая репутация - нельзя')
+                                    f'У тебя осталось очков репутации - <b>{sender_karma}</b>')
 
 # /-- karma end --/

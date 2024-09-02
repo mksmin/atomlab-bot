@@ -3,6 +3,7 @@ from aiogram import Router, F, Bot
 from aiogram.filters import Command, ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER, ADMINISTRATOR
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove, ChatMemberUpdated, ChatFullInfo
 from aiogram.fsm.context import FSMContext
+from aiogram_media_group import media_group_handler
 
 
 # import functions from my modules
@@ -90,8 +91,16 @@ async def sendchats(message: Message, state: FSMContext):
 
 
 @adm_r.message(Send.sendmess, RootProtect(), CheckChatBot(chat_type='private'))
+# @media_group_handler(only_album=False)
 async def confirm(message: Message, state: FSMContext):
+    # print(message)
+
     await state.update_data(sendmess=message.html_text)
+    print(state)
+    if message.media_group_id:
+        print('Это группа сообщений')
+        print(f'{message.media_group_id = }')
+
     if message.photo:
         await state.set_state(Send.ph_true)
         await state.update_data(ph_true=message.photo[-1].file_id)
@@ -106,11 +115,11 @@ async def send_message(callback: CallbackQuery, state: FSMContext):
     await callback.answer('Запустил отправку')
     data = await state.get_data()
     chat_id = await rq.get_list_chats()
-    if data['ph_true'] != 'False':
-        for i in chat_id:
+    print(f'{data = }')
+    for i in chat_id:
+        if data['ph_true'] != 'False':
             await callback.bot.send_photo(chat_id=i, photo=data['ph_true'], caption=data['sendmess'])
-    else:
-        for i in chat_id:
+        else:
             await callback.bot.send_message(chat_id=i, text=data['sendmess'])
 
     await callback.message.edit_text('Все сообщения отправлены', reply_markup=None)
