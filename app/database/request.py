@@ -14,28 +14,44 @@ from app.database.models import async_session
 from app.database.models import User, ChatUsers, Chat
 
 
-# Функция обращается к БД и проверяет связь пользователя и чата в бд
-# Если такой связи нет - она создается
-# Если пользователь состоит в 2х и более чатах, возвращает значение True
 async def set_user_chat(tg_id, chat_id) -> int:
+    """
+    Function for writing a user and chat, where he's member, to database
+
+    Function doing request to database and checkout link User and Chat
+    If there is no record, then create it
+    If user is a member in two chats or more
+
+    :param tg_id: (int) id of the user from telegram
+    :param chat_id: (int) id of the chat from telegram
+    :return: (int) count chat where user is member
+    """
+
     async with async_session() as session:
         is_private_chat = (tg_id == chat_id)  # Фильтр, чтобы в базу не добавлялся чат пользователя с ботом
-
+        # Check if there is an entry in database:
         user_in_db = await session.scalar(
-            select(ChatUsers).where(ChatUsers.tg_id == tg_id, ChatUsers.chat_id == chat_id))
+            select(ChatUsers).where(ChatUsers.tg_id == tg_id,
+                                    ChatUsers.chat_id == chat_id))
 
         if not user_in_db and not is_private_chat:
             session.add(ChatUsers(tg_id=tg_id, chat_id=chat_id))
             await session.commit()  # save
 
+        # Надо проверить, что будет, если записи не будет -- вернет ли 0 или None
         count_value = await session.scalar(select(func.count()).select_from(ChatUsers).where(ChatUsers.tg_id == tg_id))
         return count_value
 
 
-# Используем контекстный менеджер, чтобы сессия закрывалась после исполнения функции
-# Функция сохраняет id и никнейм пользователя в БД
-# Need FIX: Если пользователь сменит никнейм -- бд не обновится (нужно ли это?)
-async def set_user(tg_id, username: str = 'Null'):
+async def set_user(tg_id, username: str = 'Null') -> None:
+    """
+    Function for writing a user to database
+
+    :param tg_id: (int) id of the user from telegram
+    :param username: (str) username of the user from telegram
+    :return: None
+    """
+
     async with async_session() as session:
         user = await session.scalar(select(User).where(User.tg_id == tg_id))
 
@@ -44,18 +60,29 @@ async def set_user(tg_id, username: str = 'Null'):
             await session.commit()  # сохраняем информацию
 
 
-# Функция регистрирует ID чата и чат в БД
-async def set_chat(chat_id, chat_title):
+async def set_chat(chat_id, chat_title) -> None:
+    """
+    Function for writing a chat to database
+    :param chat_id: (int) id of the chat from telegram
+    :param chat_title: (str) title of the chat from telegram
+    :return: None
+    """
+
     async with async_session() as session:
         chat = await session.scalar(select(Chat).where(Chat.chat_id == chat_id))
 
         if not chat:
-            print(chat_id)
             session.add(Chat(chat_id=chat_id, chat_title=chat_title))
-            await session.commit()  # сохраняем информацию
+            await session.commit()  # save
 
 
-async def get_chats(tg_id):  # Получаю список чатов, в которые вступил конкретный пользователь
+async def get_chats(tg_id) -> str:
+    """
+    Function for read database and get list of chats, where user is member
+    :param tg_id: (int) id of the user from telegram
+    :return: (str) list of chats as str
+    """
+    # Получаю список чатов, в которые вступил конкретный пользователь
     async with async_session() as session:
         request_to_sql = select(Chat.chat_title).select_from(Chat)
         request_with_join = request_to_sql.join(ChatUsers, ChatUsers.chat_id == Chat.chat_id)
@@ -72,29 +99,22 @@ async def get_chats(tg_id):  # Получаю список чатов, в кот
         return data_return
 
 
-async def get_list_chats():  # Получаю список id всех чатов из БД
+async def get_list_chats() -> list:  # Получаю список id всех чатов из БД
+    """
+    Function for read database and get list of all chats
+    :return: (List[int]: [-123, -456]) list with id of chats
+    """
     async with async_session() as session:
         data = await session.execute(select(Chat.chat_id))
-        data_fetch = data.fetchall()
+        data_fetch = data.fetchall()  # return 'sqlalchemy.engine.row.Row' as [(-123,), (-456,)]
 
         data_list = []
-        index = 0
-        while index < len(data_fetch):
-            first_strip = str(data_fetch[index]).strip("()")
-            second_strip = first_strip.strip(",'")
-            data_list.append(second_strip)
-            index += 1
+        for element in data_fetch:
+            first_strip = str(element).strip("()")
+            second_strip = first_strip.strip(",")
+            data_list.append(int(second_strip))
 
         return data_list
-
-
-# # Функция регистрации администраторов
-# async def reg_admin(tg_id, username, first_name):
-#     async with async_session() as session:
-#         admin = await session.scalar(select(Admin).where(Admin.tg_id == tg_id))
-#         if not admin:
-#             session.add(Admin(tg_id=tg_id, username=username, first_name=first_name))
-#             await session.commit()
 
 
 # Работа с репутацией
@@ -104,9 +124,9 @@ async def check_karma(tg_id_sender, tg_id_recipient):
         sender = await session.scalar(select(User).where(User.tg_id == tg_id_sender))
         recipient = await session.scalar(select(User).where(User.tg_id == tg_id_recipient))
 
-        if sender and not recipient:
+        if not recipient:
             await set_user(tg_id_recipient)
-        elif not sender and recipient:
+        if not sender:
             await set_user(tg_id_sender)
 
         text_recipient = text(f"SELECT tg_id, total_karma FROM users WHERE tg_id = {tg_id_recipient}")
