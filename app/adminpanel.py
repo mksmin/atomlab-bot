@@ -93,10 +93,8 @@ async def sendchats(message: Message, state: FSMContext):
 @adm_r.message(Send.sendmess, RootProtect(), CheckChatBot(chat_type='private'))
 # @media_group_handler(only_album=False)
 async def confirm(message: Message, state: FSMContext):
-    # print(message)
-
     await state.update_data(sendmess=message.html_text)
-    print(state)
+
     if message.media_group_id:
         print('Это группа сообщений')
         print(f'{message.media_group_id = }')
@@ -115,7 +113,6 @@ async def send_message(callback: CallbackQuery, state: FSMContext):
     await callback.answer('Запустил отправку')
     data = await state.get_data()
     chat_id = await rq.get_list_chats()
-    print(f'{data = }')
     for i in chat_id:
         if data['ph_true'] != 'False':
             await callback.bot.send_photo(chat_id=i, photo=data['ph_true'], caption=data['sendmess'])
