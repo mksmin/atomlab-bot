@@ -70,9 +70,9 @@ async def bot_added_as_admin(update: ChatMemberUpdated):
 
 
 # drop sheets from database
-@adm_r.message(Command('dropall'), RootProtect())
-async def rm_database_sheets():
-    await drop_all()
+# @adm_r.message(Command('dropall'), RootProtect())
+# async def rm_database_sheets():
+#     await drop_all()
 
 
 # /-- send start--/
