@@ -8,7 +8,7 @@ from aiogram.types import Message, ContentType, ChatMemberUpdated, FSInputFile
 from app.middlewares import CheckChatBot
 import app.database.request as rq
 from config.config import get_id_chat_root
-from app.user_requests import get_program_schedule
+# from app.user_requests import get_program_schedule
 
 router = Router()  # handler
 
@@ -83,18 +83,20 @@ async def tmp_get_member(message: Message):
 
 
 # /-- timing start --/
+
+
 # Функция получения расписания через чат компетенции
-@router.message(Command('timing'), CheckChatBot(chat_type=["group", "supergroup"]))
-async def get_timing(message: Message):
-    result = await get_program_schedule(message.chat.title)
-    await message.answer(result, parse_mode='HTML')
+# @router.message(Command('timing'), CheckChatBot(chat_type=["group", "supergroup"]))
+# async def get_timing(message: Message):
+#     result = await get_program_schedule(message.chat.title)
+#     await message.answer(result, parse_mode='HTML')
 
 
 # Фильтрует, если в бота написать
 # Понадобится потом для доп функционала
-@router.message(Command('timing'), CheckChatBot(chat_type="private"))
-async def get_timing(message: Message):
-    await message.answer('Расписание можно получить только через чат компетенции')
+# @router.message(Command('timing'), CheckChatBot(chat_type="private"))
+# async def get_timing(message: Message):
+#     await message.answer('Расписание можно получить только через чат компетенции')
 
 
 # /-- timing end--/
