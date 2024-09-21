@@ -4,9 +4,11 @@ this module load environment and read .env file
 
 
 import os
+import logging
 from dotenv import load_dotenv
 import asyncio
 
+logger = logging.getLogger(__name__)
 
 # Load token from .env
 async def get_tokens(name_of_token: str) -> str:

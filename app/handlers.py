@@ -7,7 +7,7 @@ from aiogram.types import Message, ContentType, ChatMemberUpdated, FSInputFile
 # import from modules
 from app.middlewares import CheckChatBot
 import app.database.request as rq
-from config.config import get_id_chat_root
+from config.config import get_id_chat_root, logger
 
 # from app.user_requests import get_program_schedule
 
