@@ -112,7 +112,7 @@ async def add_rep_to_user(message: Message) -> None:
     if id_recipient == message.bot.id:
         await message.reply('Боту нельзя поднять репутацию, но спасибо, что ты ценишь его работу')
         return None
-    elif id_recipient == id_sender:
+    if id_recipient == id_sender:
         await message.reply('Cебе нельзя поднять репутацию')
         return None
 
@@ -136,6 +136,7 @@ async def add_rep_to_user(message: Message) -> None:
 
     sender_id, sender_karma = dict_value['send']['ID'], dict_value['send']['karma']
     recipient_id, recipient_karma = dict_value['recipient']['ID'], dict_value['recipient']['karma']
+
     if sender_karma <= 0:
         await message.reply(f'Упс! У тебя закончились очки репутации')
     else:
