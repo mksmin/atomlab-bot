@@ -157,3 +157,25 @@ async def tmp_check_me_in_db(message: Message):
                             f'Я отправил админу сообщение, он свяжется с тобой и удалит тебя из других чатов')
             await message.answer(message_text)
 
+
+# Временная команда, которая регистрирует пользователя в бд
+@adm_r.message(Command('addme'), RootProtect())
+async def tmp_get_member(message: Message):
+    from_user = message.from_user
+    message_text = f'Добавил в бд'
+
+    await rq.set_user(from_user.id, from_user.username)
+    count_chats = await rq.set_user_chat(from_user.id, message.chat.id)
+
+    if count_chats < 2:
+        await message.answer(message_text)
+    else:
+        message_text = f'ВНИМАНИЕ! Больше одного чата!'
+        await message.answer(message_text)
+        root_id = await get_id_chat_root()
+        data_ = await rq.get_chats(from_user.id)
+        await message.bot.send_message(chat_id=int(root_id),
+                                       text=f'{message.from_user.username}'
+                                            f'\nвступил в несколько чатов: '
+                                            f'\n\n{data_}'
+                                            f'\n\nСвяжись с ним, чтобы обсудить детали')

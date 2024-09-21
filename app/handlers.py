@@ -8,6 +8,7 @@ from aiogram.types import Message, ContentType, ChatMemberUpdated, FSInputFile
 from app.middlewares import CheckChatBot
 import app.database.request as rq
 from config.config import get_id_chat_root
+
 # from app.user_requests import get_program_schedule
 
 router = Router()  # handler
@@ -60,30 +61,7 @@ async def get_member(update: ChatMemberUpdated):
                                            f'\n\nСвяжись с ним, чтобы обсудить детали')
 
 
-# Временная команда, которая регистрирует пользователя в бд
-@router.message(Command('addme'))
-async def tmp_get_member(message: Message):
-    from_user = message.from_user
-    message_text = f'Добавил в бд'
-
-    await rq.set_user(from_user.id, from_user.username)
-    count_chats = await rq.set_user_chat(from_user.id, message.chat.id)
-
-    if count_chats < 2:
-        await message.answer(message_text)
-    else:
-        message_text = f'ВНИМАНИЕ! Больше одного чата!'
-        root_id = await get_id_chat_root()
-        data_ = await rq.get_chats(from_user.id)
-        await message.bot.send_message(chat_id=int(root_id),
-                                       text=f'{message.from_user.username}'
-                                            f'\nвступил в несколько чатов: '
-                                            f'\n\n{data_}'
-                                            f'\n\nСвяжись с ним, чтобы обсудить детали')
-
-
 # /-- timing start --/
-
 
 # Функция получения расписания через чат компетенции
 # @router.message(Command('timing'), CheckChatBot(chat_type=["group", "supergroup"]))
