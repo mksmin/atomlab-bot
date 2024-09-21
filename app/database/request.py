@@ -113,7 +113,7 @@ async def get_chats(session, tg_id) -> str:
     data_list = []
     for name in chats_titles_list:
         first_strip = str(name).strip("()")
-        second_strip = f'— {first_strip.strip(",'")}'
+        second_strip = f'— {first_strip.strip(",")}'
         data_list.append(second_strip)
     data_return = '\n'.join(map(str, data_list))
     return data_return
