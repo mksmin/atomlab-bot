@@ -1,10 +1,14 @@
+# import libraries
+import aiohttp
+import os
+import json
+
 # import functions from libraries
 from aiogram import Router, F, Bot
 from aiogram.filters import Command, ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER, ADMINISTRATOR
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove, ChatMemberUpdated, ChatFullInfo
 from aiogram.fsm.context import FSMContext
 from aiogram_media_group import media_group_handler
-
 
 # import functions from my modules
 from app.middlewares import RootProtect, CheckChatBot
@@ -179,3 +183,74 @@ async def tmp_get_member(message: Message):
                                             f'\nвступил в несколько чатов: '
                                             f'\n\n{data_}'
                                             f'\n\nСвяжись с ним, чтобы обсудить детали')
+
+
+async def get_token(url: str, user_id: int):
+    async with aiohttp.ClientSession() as session:
+        async with session.post(f'{url}{user_id}') as resp:
+            return await resp.json()
+
+
+async def get_stat(url_r: str, token_r: int):
+    headers = {"token": token_r}
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url_r, headers=headers) as response:
+            return await response.json()
+
+
+async def create_message_for_statistics(result_from_db):
+    # Проверяем, что сервер не вернул нам ошибку Headers
+    # Если отсутсвует token в headers -> вернет dict с ошибкой
+    if isinstance(result_from_db, dict) and result_from_db.get('detail'):
+        return str(result_from_db.get('detail'))
+
+    data = json.loads(result_from_db)
+    message_data = data['message']
+
+    # Проверяем, что токен рабочий
+    # Если токен истек, в json будет ключ "error"
+    if message_data.get('error'):
+        message_to_return = f'Возникла проблема с JWT, возможно он устарел или неверен'
+        return message_to_return
+
+    list_ = []
+    for name, value in data['message']['details'].items():
+        list_.append(f'{name}: {value}')
+
+    message = '\n'.join(list_)
+    message_to_return = (f"<b>Статистика регистрации</b>\n"
+                         f"Всего заявок: {data['message']['total_users']}"
+                         f"\n\nДетально по компетенциям:"
+                         f"\n{message}")
+    return message_to_return
+
+
+@adm_r.message(Command('getstat'), RootProtect())
+async def get_statistic(message: Message):
+    user_id = message.from_user.id
+    path_dir = os.path.dirname(os.path.abspath(__file__))
+    path_file = os.path.join(path_dir, f'auth/{user_id}.json')
+
+    dir_exists = os.path.exists(os.path.join(path_dir, 'auth'))
+    file_exists = os.path.exists(path_file)
+
+    if not dir_exists:
+        os.makedirs(os.path.join(path_dir, 'auth'))
+
+    if not file_exists:
+        result_token = await get_token('https://api.атом-лаб.рф/get_token/', user_id)
+        token = result_token['access_token']
+        message_to_write = {"User": user_id, "Token": token}
+        with open(path_file, 'x') as f:
+            json.dump(message_to_write, f)
+
+        result_statistic = await get_stat('https://api.атом-лаб.рф/statistics/', token)
+        message_to_send = await create_message_for_statistics(result_statistic)
+        await message.answer(message_to_send)
+    else:
+        with open(path_file, 'r') as f:
+            data = json.load(f)
+            token = data['Token']
+            result_statistic = await get_stat('https://api.атом-лаб.рф/statistics/', token)
+            message_to_send = await create_message_for_statistics(result_statistic)
+            await message.answer(message_to_send)

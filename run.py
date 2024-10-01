@@ -29,8 +29,6 @@ async def main(bot) -> None:
     start bot with token
     :return: None
     """
-    # bot_token = await get_tokens('TOKEN')
-    # bot = Bot(token=bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
     dp.include_routers(adm_r, router)
     dp.startup.register(on_startup)
