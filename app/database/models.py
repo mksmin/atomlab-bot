@@ -6,7 +6,7 @@ Create tables in DataBase
 import asyncio
 
 # import from libraries
-from sqlalchemy import Column, BigInteger, String, Integer, ForeignKey
+from sqlalchemy import BigInteger, ForeignKey, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 
@@ -20,11 +20,18 @@ engine = create_async_engine(url=post_host_token,
 async_session = async_sessionmaker(engine)  # create session func
 
 
-class Base(AsyncAttrs, DeclarativeBase):  # main class
+class Base(AsyncAttrs, DeclarativeBase):
+    """
+    Main class
+    """
     pass
 
 
-class User(Base):  # table with data of users
+class User(Base):
+    """
+    Table with data of users
+    """
+
     __tablename__ = 'users'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -34,7 +41,10 @@ class User(Base):  # table with data of users
     total_karma: Mapped[int] = mapped_column(nullable=False, default=0)
 
 
-class Chat(Base):  # table with data of chats
+class Chat(Base):
+    """
+    Table with data of chats
+    """
     __tablename__ = 'chats'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -42,7 +52,10 @@ class Chat(Base):  # table with data of chats
     chat_title: Mapped[str] = mapped_column(String(120), nullable=True, default='null')
 
 
-class ChatUsers(Base):  # Таблица, которая связывает конкретного пользователя, с конкретным чатом
+class ChatUsers(Base):
+    """
+    A table linking the chats and the users who joined them
+    """
     __tablename__ = 'chatAndUsers'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -52,7 +65,7 @@ class ChatUsers(Base):  # Таблица, которая связывает ко
 
 async def async_main() -> None:
     """
-    func create all tables in database
+    Func create all tables in database
     """
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -60,7 +73,7 @@ async def async_main() -> None:
 
 async def drop_all() -> None:
     """
-    func drop all tables in database
+    Func drop all tables in database
     """
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

@@ -16,8 +16,8 @@ from app.database.models import async_main
 
 async def start() -> Bot:
     bot_token = await get_tokens('TOKEN')
-    bot = Bot(token=bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-    return bot
+    bot_class = Bot(token=bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    return bot_class
 
 
 async def main(bot) -> None:
@@ -38,7 +38,6 @@ async def main(bot) -> None:
         await dp.start_polling(bot)
     finally:
         await bot.session.close()
-        logger.warning('Бот остановлен')
 
 
 async def on_startup(dispatcher) -> None:
@@ -69,4 +68,3 @@ if __name__ == '__main__':
         asyncio.run(main(bot))
     except KeyboardInterrupt:
         logger.warning('Произошел KeyboardInterrupt')
-        print('Exit')

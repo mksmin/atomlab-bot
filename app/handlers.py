@@ -1,20 +1,19 @@
 # import from libraries
 from aiogram import Router, F
-from aiogram.filters import CommandStart, Command, ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER, ADMINISTRATOR, \
-    KICKED, LEFT, RESTRICTED, MEMBER, CREATOR
-from aiogram.types import Message, ContentType, ChatMemberUpdated, FSInputFile
+from aiogram.filters import CommandStart, ChatMemberUpdatedFilter, \
+    KICKED, LEFT, MEMBER, RESTRICTED
+from aiogram.types import Message, ChatMemberUpdated
 
 # import from modules
-from app.middlewares import CheckChatBot
 import app.database.request as rq
-from config.config import get_id_chat_root, logger
-
-# from app.user_requests import get_program_schedule
-
-router = Router()  # handler
+from app.middlewares import CheckChatBot
+from config.config import get_id_chat_root
 
 
-@router.message(CommandStart())  # start handler
+router = Router()  # main handler
+
+
+@router.message(CommandStart())
 async def cmd_start(message: Message) -> None:
     """
     Start handler
@@ -32,10 +31,18 @@ async def cmd_start(message: Message) -> None:
     >>
     (+RESTRICTED | MEMBER)
 ))
-async def get_member(update: ChatMemberUpdated):
+async def get_member(update: ChatMemberUpdated) -> None:
+    """
+    Add user's info to DB after he's joined to chat
+    and check number of chats, where he's member
+    :param update:
+    :return: None
+    """
     chat = update.chat
     from_user = update.new_chat_member.user
-    count_chats = await rq.set_user_chat(from_user.id, chat.id)  # Переписать функцию проверки количества чатов
+
+    # TODO переписать функцию проверки количества чатов set_user_chat()
+    count_chats = await rq.set_user_chat(from_user.id, chat.id)
     await rq.set_user(from_user.id, from_user.username)
 
     if from_user.username is None:
@@ -47,9 +54,9 @@ async def get_member(update: ChatMemberUpdated):
         message_text = f'Привет, {username_}!'
         await update.answer(message_text)
     else:
-        message_text = (f'Привет, {username_}!\n'
-                        f'Учиться можно только на одном направлении\n\n'
-                        f'Я отправил админу сообщение, он свяжется с тобой и удалит тебя из других чатов')
+        message_text = (f'Привет, {username_}!'
+                        f'\nУчиться можно только на одном направлении'
+                        f'\n\nЯ отправил админу сообщение, он свяжется с тобой и удалит тебя из других чатов')
         await update.answer(message_text)
 
         root_id = await get_id_chat_root()
@@ -61,27 +68,8 @@ async def get_member(update: ChatMemberUpdated):
                                            f'\n\nСвяжись с ним, чтобы обсудить детали')
 
 
-# /-- timing start --/
-
-# Функция получения расписания через чат компетенции
-# @router.message(Command('timing'), CheckChatBot(chat_type=["group", "supergroup"]))
-# async def get_timing(message: Message):
-#     result = await get_program_schedule(message.chat.title)
-#     await message.answer(result, parse_mode='HTML')
-
-
-# Фильтрует, если в бота написать
-# Понадобится потом для доп функционала
-# @router.message(Command('timing'), CheckChatBot(chat_type="private"))
-# async def get_timing(message: Message):
-#     await message.answer('Расписание можно получить только через чат компетенции')
-
-
-# /-- timing end--/
-
-
 # /-- karma start --/
-# Функция увеличения репутации за помощь
+# Функция увеличения репутации
 @router.message(F.reply_to_message,
                 F.text.lower().contains('+rep'),
                 CheckChatBot(chat_type=["group", "supergroup"]))
@@ -122,9 +110,11 @@ async def add_rep_to_user(message: Message) -> None:
     else:
         sender_karma -= 1
         recipient_karma += 1
+        recipient_username = message.reply_to_message.from_user.username
+
         await rq.update_karma(sender_id, sender_karma,
                               recipient_id, recipient_karma)
-        await message.reply(f'Репутация @{message.reply_to_message.from_user.username} повышена. '
+        await message.reply(f'Репутация @{recipient_username} повышена. '
                             f'У тебя осталось очков репутации - <b>{sender_karma}</b>')
 
 # /-- karma end --/

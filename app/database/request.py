@@ -2,27 +2,23 @@
 Module with functions for requesting data from database
 """
 
-# import libraries
-
-# import from libraries
-from sqlalchemy import select
-from sqlalchemy import func
-from sqlalchemy.sql import text
+# import from
 from functools import wraps
+from sqlalchemy import func, select
+from sqlalchemy.sql import text
 
 # import from modules
-from app.database.models import async_session
-from app.database.models import User, ChatUsers, Chat
+from app.database.models import async_session, ChatUsers, Chat, User
 
 
-def connection(func):
+def connection(function):
     """
     this decorator is used to make a database connection
     """
-    @wraps(func)
+    @wraps(function)
     async def wrapper(*args, **kwargs):
         async with async_session() as session:
-            return await func(session, *args, **kwargs)
+            return await function(session, *args, **kwargs)
 
     return wrapper
 
@@ -78,7 +74,7 @@ async def set_user(session, tg_id, username: str = 'Null') -> None:
 @connection
 async def set_chat(session, chat_id, chat_title) -> None:
     """
-    Function for writing a chat to database
+    Function for writing a chat's info to database
 
     :param session: is connector to database from decorator @connection
     :param chat_id: (int) id of the chat from telegram
@@ -115,7 +111,9 @@ async def get_chats(session, tg_id) -> str:
         first_strip = str(name).strip("()")
         second_strip = f'— {first_strip.strip(",")}'
         data_list.append(second_strip)
+
     data_return = '\n'.join(map(str, data_list))
+
     return data_return
 
 

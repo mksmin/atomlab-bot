@@ -20,8 +20,6 @@ class RootProtect(Filter):
         return str(message.from_user.id) == root_id
 
 
-# Класс для фильтрации обращения к боту
-# Использовать private или group and supergroup
 class CheckChatBot(Filter):
     """
     The class for filtering decorator

@@ -1,24 +1,23 @@
 # import libraries
 import aiohttp
-import os
 import json
+import os
+
 
 # import functions from libraries
-from aiogram import Router, F, Bot
-from aiogram.filters import Command, ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER, ADMINISTRATOR
-from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove, ChatMemberUpdated, ChatFullInfo
+from aiogram import F, Router
+from aiogram.filters import ADMINISTRATOR, Command, ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER
+from aiogram.types import CallbackQuery, ChatMemberUpdated, Message
 from aiogram.fsm.context import FSMContext
-from aiogram_media_group import media_group_handler
 
 # import functions from my modules
-from app.middlewares import RootProtect, CheckChatBot
-from config.config import get_tokens, get_id_chat_root
 import app.database.request as rq
-from app.database.models import drop_all
-from app.statesuser import Send
 from app.keyboards import keyboard_send_mess
+from app.middlewares import CheckChatBot, RootProtect
+from app.statesuser import Send
+from config.config import get_id_chat_root
 
-adm_r = Router()  # handler
+adm_r = Router()  # main handler
 adm_r.my_chat_member.filter(F.chat.type.in_({'group', 'supergroup'}))
 
 
@@ -73,14 +72,7 @@ async def bot_added_as_admin(update: ChatMemberUpdated):
     await rq.set_chat(chat_id, chat_title)
 
 
-# drop sheets from database
-# @adm_r.message(Command('dropall'), RootProtect())
-# async def rm_database_sheets():
-#     await drop_all()
-
-
 # /-- send start--/
-
 
 # Функция отправки сообщения во все чаты
 # Умеет отлавливать фото с тектом или только текст (форматированный)
@@ -95,7 +87,6 @@ async def sendchats(message: Message, state: FSMContext):
 
 
 @adm_r.message(Send.sendmess, RootProtect(), CheckChatBot(chat_type='private'))
-# @media_group_handler(only_album=False)
 async def confirm(message: Message, state: FSMContext):
     await state.update_data(sendmess=message.html_text)
 
