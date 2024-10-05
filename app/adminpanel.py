@@ -195,13 +195,13 @@ async def create_message_for_statistics(result_from_db):
     if isinstance(result_from_db, dict) and result_from_db.get('detail'):
         return str(result_from_db.get('detail'))
 
+    print(f'type result from db: {type(result_from_db)}')
     data = json.loads(result_from_db)
     message_data = data['message']
 
-    # Проверяем, что токен рабочий
-    # Если токен истек, в json будет ключ "error"
+    # Проверяем, возникла ли ошибка на стороне сервера. Если возникла, то будет ключ error
     if message_data.get('error'):
-        message_to_return = f'Возникла проблема с JWT, возможно он устарел или неверен'
+        message_to_return = message_data.get('error')
         return message_to_return
 
     list_ = []
@@ -238,10 +238,11 @@ async def get_statistic(message: Message):
         result_statistic = await get_stat('https://api.атом-лаб.рф/statistics/', token)
         message_to_send = await create_message_for_statistics(result_statistic)
         await message.answer(message_to_send)
-    else:
-        with open(path_file, 'r') as f:
-            data = json.load(f)
-            token = data['Token']
-            result_statistic = await get_stat('https://api.атом-лаб.рф/statistics/', token)
-            message_to_send = await create_message_for_statistics(result_statistic)
-            await message.answer(message_to_send)
+        return None
+
+    with open(path_file, 'r') as f:
+        data = json.load(f)
+        token = data['Token']
+        result_statistic = await get_stat('https://api.атом-лаб.рф/statistics/', token)
+        message_to_send = await create_message_for_statistics(result_statistic)
+        await message.answer(message_to_send)
