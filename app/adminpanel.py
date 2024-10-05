@@ -3,7 +3,6 @@ import aiohttp
 import json
 import os
 
-
 # import functions from libraries
 from aiogram import F, Router
 from aiogram.filters import ADMINISTRATOR, Command, ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER
@@ -189,20 +188,35 @@ async def get_stat(url_r: str, token_r: int):
             return await response.json()
 
 
-async def create_message_for_statistics(result_from_db):
-    # Проверяем, что сервер не вернул нам ошибку Headers
+async def validate_response_from_server(server_response: dict | str) -> dict:
+    """
+    Функция проверяет ответ от сервера. Если в ответе есть error, то возвращает текст ошибки,
+    если нет, то возвращает исходный ответ\n
+    Example error: server_response: {'message': {'error': 'invalid token'}}\n
+    Example success: server_response: {'message': {'total_users': 0, 'details': {'name1': '123', 'name2': '123'}}}
+    :param server_response: json str
+    :return: dict with response
+    """
     # Если отсутсвует token в headers -> вернет dict с ошибкой
-    if isinstance(result_from_db, dict) and result_from_db.get('detail'):
-        return str(result_from_db.get('detail'))
+    if isinstance(server_response, dict) and server_response.get('detail'):
+        message_to_return = {'error': str(server_response.get('detail'))}
+        return message_to_return
 
-    print(f'type result from db: {type(result_from_db)}')
-    data = json.loads(result_from_db)
+    data = json.loads(server_response)  # str to dict
     message_data = data['message']
 
-    # Проверяем, возникла ли ошибка на стороне сервера. Если возникла, то будет ключ error
     if message_data.get('error'):
-        message_to_return = message_data.get('error')
+        message_to_return = {'error': message_data.get('error')}
         return message_to_return
+
+    return data
+
+
+async def create_message_for_statistics(server_response: str) -> str:
+    data = await validate_response_from_server(server_response)
+
+    if data.get('error'):
+        return data['error']
 
     list_ = []
     for name, value in data['message']['details'].items():
@@ -219,6 +233,7 @@ async def create_message_for_statistics(result_from_db):
 @adm_r.message(Command('getstat'), RootProtect())
 async def get_statistic(message: Message):
     user_id = message.from_user.id
+
     path_dir = os.path.dirname(os.path.abspath(__file__))
     path_file = os.path.join(path_dir, f'auth/{user_id}.json')
 
@@ -230,15 +245,10 @@ async def get_statistic(message: Message):
 
     if not file_exists:
         result_token = await get_token('https://api.атом-лаб.рф/get_token/', user_id)
-        token = result_token['access_token']
-        message_to_write = {"User": user_id, "Token": token}
         with open(path_file, 'x') as f:
+            token = result_token['message']
+            message_to_write = {"User": user_id, "Token": token}
             json.dump(message_to_write, f)
-
-        result_statistic = await get_stat('https://api.атом-лаб.рф/statistics/', token)
-        message_to_send = await create_message_for_statistics(result_statistic)
-        await message.answer(message_to_send)
-        return None
 
     with open(path_file, 'r') as f:
         data = json.load(f)
