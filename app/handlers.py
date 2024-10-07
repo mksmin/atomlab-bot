@@ -1,13 +1,17 @@
+import random
+
 # import from libraries
 from aiogram import Router, F
-from aiogram.filters import CommandStart, ChatMemberUpdatedFilter, \
+from aiogram.filters import Command, CommandStart, ChatMemberUpdatedFilter, \
     KICKED, LEFT, MEMBER, RESTRICTED
 from aiogram.types import Message, ChatMemberUpdated
 
 # import from modules
 import app.database.request as rq
+from app.messages import msg_texts
 from app.middlewares import CheckChatBot
 from config.config import get_id_chat_root
+
 
 router = Router()  # main handler
 
@@ -49,7 +53,8 @@ async def get_member(update: ChatMemberUpdated) -> None:
         username_ = f'{from_user.first_name} (@{from_user.username})'
 
     if count_chats < 2:
-        message_text = f'Привет, {username_}!'
+        hello_txt = random.choice(msg_texts.hello_for_user)
+        message_text = f'{hello_txt}, {username_}!'
         await update.answer(message_text)
     else:
         message_text = (f'Привет, {username_}!'
