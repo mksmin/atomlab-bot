@@ -56,7 +56,7 @@ class ChatUsers(Base):
     """
     A table linking the chats and the users who joined them
     """
-    __tablename__ = 'chatAndUsers'
+    __tablename__ = 'chatandusers'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tg_id = mapped_column(BigInteger, ForeignKey('users.tg_id'), nullable=False)
