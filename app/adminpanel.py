@@ -276,13 +276,16 @@ async def set_admins(message: Message, state: FSMContext):
 
             errors_dict[chat] = type_of_errors[str(err)]
             continue
-    list_ = []
-    for i, v in errors_dict.items():
-        list_.append(f'{i}: {v}\n')
-    await message.answer(f"{''.join(list_)}")
 
+    if errors_dict:
+        list_ = []
+        for i, v in errors_dict.items():
+            list_.append(f'{i}: {v}\n')
+        await message.answer(f"Закончил. Вот ошибки: \n{''.join(list_)}")
+    else:
+        await message.answer('Закончил без ошибок')
     await state.clear()
-    await message.answer('Закончил')
+
 
 # Временная команда, которая регистрирует пользователя в бд
 # @adm_r.message(Command('addme'), RootProtect())
