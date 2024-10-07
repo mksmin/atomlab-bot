@@ -279,7 +279,7 @@ async def set_admins(message: Message, state: FSMContext):
     list_ = []
     for i, v in errors_dict.items():
         list_.append(f'{i}: {v}\n')
-    await message.answer(f'{''.join(list_)}')
+    await message.answer(f"{''.join(list_)}")
 
     await state.clear()
     await message.answer('Закончил')
