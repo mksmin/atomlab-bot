@@ -13,8 +13,8 @@ from aiogram.fsm.context import FSMContext
 import app.database.request as rq
 from app.keyboards import keyboard_send_mess
 from app.middlewares import CheckChatBot, RootProtect
-from app.statesuser import Send
-from config.config import get_id_chat_root
+from app.statesuser import Send, Admins
+from config.config import get_id_chat_root, logger
 
 adm_r = Router()  # main handler
 adm_r.my_chat_member.filter(F.chat.type.in_({'group', 'supergroup'}))
@@ -152,29 +152,6 @@ async def tmp_check_me_in_db(message: Message):
             await message.answer(message_text)
 
 
-# Временная команда, которая регистрирует пользователя в бд
-@adm_r.message(Command('addme'), RootProtect())
-async def tmp_get_member(message: Message):
-    from_user = message.from_user
-    message_text = f'Добавил в бд'
-
-    await rq.set_user(from_user.id, from_user.username)
-    count_chats = await rq.set_user_chat(from_user.id, message.chat.id)
-
-    if count_chats < 2:
-        await message.answer(message_text)
-    else:
-        message_text = f'ВНИМАНИЕ! Больше одного чата!'
-        await message.answer(message_text)
-        root_id = await get_id_chat_root()
-        data_ = await rq.get_chats(from_user.id)
-        await message.bot.send_message(chat_id=int(root_id),
-                                       text=f'{message.from_user.username}'
-                                            f'\nвступил в несколько чатов: '
-                                            f'\n\n{data_}'
-                                            f'\n\nСвяжись с ним, чтобы обсудить детали')
-
-
 async def get_token(url: str, user_id: int):
     async with aiohttp.ClientSession() as session:
         async with session.post(f'{url}{user_id}') as resp:
@@ -256,3 +233,75 @@ async def get_statistic(message: Message):
         result_statistic = await get_stat('https://api.атом-лаб.рф/statistics/', token)
         message_to_send = await create_message_for_statistics(result_statistic)
         await message.answer(message_to_send)
+
+
+@adm_r.message(Command('setadmin'), RootProtect(), CheckChatBot(chat_type='private'))
+async def set_admin(message: Message, state: FSMContext):
+    await state.set_state(Admins.admins)
+    await message.answer('Пришли id пользователя, которого хочешь назначить администратором')
+
+
+@adm_r.message(Admins.admins, RootProtect(), CheckChatBot(chat_type='private'))
+async def set_admins(message: Message, state: FSMContext):
+    type_of_errors = {
+        'Telegram server says - Bad Request: not enough rights': 'Недостаточно прав',
+        'Telegram server says - Bad Request: USER_NOT_MUTUAL_CONTACT': 'Пользователь не состоит в группе'
+    }
+
+    try:
+        user_id = int(message.text)
+    except TypeError as err:
+        await message.answer(f'Ошибка. Нужно прислать число, а не {type(message.text)}')
+        return None
+    chat_ids = await rq.get_list_chats()
+    errors_dict = {}
+    for chat in chat_ids:
+        try:
+            await message.bot.promote_chat_member(chat, user_id,
+                                                  can_promote_members=True,
+                                                  can_edit_messages=True,
+                                                  can_delete_messages=True,
+                                                  can_manage_chat=True,
+                                                  can_change_info=True,
+                                                  can_restrict_members=True,
+                                                  can_invite_users=True,
+                                                  can_pin_messages=True,
+                                                  can_manage_video_chats=True
+                                                  )
+        except Exception as err:
+            if not type_of_errors.get(str(err)):
+                errors_dict[chat] = 'Неизвестная ошибка'
+                logger.warning(f'Ошибка с чатом {chat}: {str(err)}')
+                continue
+
+            errors_dict[chat] = type_of_errors[str(err)]
+            continue
+    list_ = []
+    for i, v in errors_dict.items():
+        list_.append(f'{i}: {v}\n')
+    await message.answer(f'{''.join(list_)}')
+
+    await state.clear()
+    await message.answer('Закончил')
+
+# Временная команда, которая регистрирует пользователя в бд
+# @adm_r.message(Command('addme'), RootProtect())
+# async def tmp_get_member(message: Message):
+#     from_user = message.from_user
+#     message_text = f'Добавил в бд'
+#
+#     await rq.set_user(from_user.id, from_user.username)
+#     count_chats = await rq.set_user_chat(from_user.id, message.chat.id)
+#
+#     if count_chats < 2:
+#         await message.answer(message_text)
+#     else:
+#         message_text = f'ВНИМАНИЕ! Больше одного чата!'
+#         await message.answer(message_text)
+#         root_id = await get_id_chat_root()
+#         data_ = await rq.get_chats(from_user.id)
+#         await message.bot.send_message(chat_id=int(root_id),
+#                                        text=f'{message.from_user.username}'
+#                                             f'\nвступил в несколько чатов: '
+#                                             f'\n\n{data_}'
+#                                             f'\n\nСвяжись с ним, чтобы обсудить детали')

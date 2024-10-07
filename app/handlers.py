@@ -40,9 +40,8 @@ async def get_member(update: ChatMemberUpdated) -> None:
     chat = update.chat
     from_user = update.new_chat_member.user
 
-    await rq.set_user(from_user.id, from_user.username)
-
-    count_chats = await rq.set_user_chat(from_user.id, chat.id)
+    await rq.set_user(from_user.id, from_user.username)  # регистрируем юзера
+    count_chats = await rq.set_user_chat(from_user.id, chat.id)  # проверяем количество чатов
 
     if from_user.username is None:
         username_ = f'{from_user.first_name}'
