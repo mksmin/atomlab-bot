@@ -9,7 +9,6 @@ import app.database.request as rq
 from app.middlewares import CheckChatBot
 from config.config import get_id_chat_root
 
-
 router = Router()  # main handler
 
 
@@ -41,9 +40,9 @@ async def get_member(update: ChatMemberUpdated) -> None:
     chat = update.chat
     from_user = update.new_chat_member.user
 
-    # TODO переписать функцию проверки количества чатов set_user_chat()
-    count_chats = await rq.set_user_chat(from_user.id, chat.id)
     await rq.set_user(from_user.id, from_user.username)
+
+    count_chats = await rq.set_user_chat(from_user.id, chat.id)
 
     if from_user.username is None:
         username_ = f'{from_user.first_name}'
