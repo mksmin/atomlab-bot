@@ -115,4 +115,17 @@ async def add_rep_to_user(message: Message) -> None:
         await message.reply(f'Репутация @{recipient_username} повышена. '
                             f'У тебя осталось очков репутации - <b>{sender_karma}</b>')
 
+
 # /-- karma end --/
+
+
+@router.message(CheckChatBot(chat_type='private'))
+async def help_to_user(message: Message) -> None:
+    text = ("Привет! Я бот-администратор!\n"
+            "Я не отвечаю на вопросы пользователей, но если тебе нужна помощь, то держи подсказку\n\n"
+            "<b>Ты можешь: </b>\n"
+            "1. Задать вопрос в чате своей компетенции\n"
+            "2. Написать комментарий в официальном канале Атом-лаб: @atomlabrf\n"
+            "3. Попросить помощи у организаторов в боте обратной связи: @AtomLabBot\n\n"
+            "Если все еще не получается решить проблему — напиши нам на почту atomlab@rosatom.team")
+    await message.answer(text)
