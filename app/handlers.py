@@ -126,11 +126,5 @@ async def add_rep_to_user(message: Message) -> None:
 
 @router.message(CheckChatBot(chat_type='private'))
 async def help_to_user(message: Message) -> None:
-    text = ("Привет! Я бот-администратор!\n"
-            "Я не отвечаю на вопросы пользователей, но если тебе нужна помощь, то держи подсказку\n\n"
-            "<b>Ты можешь: </b>\n"
-            "1. Задать вопрос в чате своей компетенции\n"
-            "2. Написать комментарий в официальном канале Атом-лаб: @atomlabrf\n"
-            "3. Попросить помощи у организаторов в боте обратной связи: @AtomLabBot\n\n"
-            "Если все еще не получается решить проблему — напиши нам на почту atomlab@rosatom.team")
+    text = msg_texts.text_for_help_user
     await message.answer(text)
