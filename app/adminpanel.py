@@ -15,6 +15,7 @@ from app.keyboards import keyboard_send_mess
 from app.middlewares import CheckChatBot, RootProtect
 from app.statesuser import Send, Admins
 from config.config import get_id_chat_root, logger
+from app.messages import msg_texts as mt
 
 adm_r = Router()  # main handler
 adm_r.my_chat_member.filter(F.chat.type.in_({'group', 'supergroup'}))
@@ -287,24 +288,6 @@ async def set_admins(message: Message, state: FSMContext):
     await state.clear()
 
 
-# Временная команда, которая регистрирует пользователя в бд
-# @adm_r.message(Command('addme'), RootProtect())
-# async def tmp_get_member(message: Message):
-#     from_user = message.from_user
-#     message_text = f'Добавил в бд'
-#
-#     await rq.set_user(from_user.id, from_user.username)
-#     count_chats = await rq.set_user_chat(from_user.id, message.chat.id)
-#
-#     if count_chats < 2:
-#         await message.answer(message_text)
-#     else:
-#         message_text = f'ВНИМАНИЕ! Больше одного чата!'
-#         await message.answer(message_text)
-#         root_id = await get_id_chat_root()
-#         data_ = await rq.get_chats(from_user.id)
-#         await message.bot.send_message(chat_id=int(root_id),
-#                                        text=f'{message.from_user.username}'
-#                                             f'\nвступил в несколько чатов: '
-#                                             f'\n\n{data_}'
-#                                             f'\n\nСвяжись с ним, чтобы обсудить детали')
+@adm_r.message(Command('help'), RootProtect())
+async def help_for_admin(message: Message):
+    await message.answer(text=mt.text_for_help_admin)
