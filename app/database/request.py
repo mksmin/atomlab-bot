@@ -15,6 +15,7 @@ def connection(function):
     """
     this decorator is used to make a database connection
     """
+
     @wraps(function)
     async def wrapper(*args, **kwargs):
         async with async_session() as session:
@@ -122,19 +123,10 @@ async def get_list_chats(session) -> list:
     """
     Function for read database and get list of all chats
 
-    :return: (List[int]: [-123, -456]) list with id of chats
+    :return: 'sqlalchemy.engine.row.Row' as [(<class Chat>,), (<class Chat>,)] list with classes of Chat
     """
-
-    data = await session.execute(select(Chat.chat_id))
-    data_fetch = data.fetchall()  # return 'sqlalchemy.engine.row.Row' as [(-123,), (-456,)]
-
-    data_list = []
-    for element in data_fetch:
-        first_strip = str(element).strip("()")
-        second_strip = first_strip.strip(",")
-        data_list.append(int(second_strip))
-
-    return data_list
+    data = await session.execute(select(Chat))
+    return data
 
 
 @connection

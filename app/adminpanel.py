@@ -97,23 +97,41 @@ async def confirm(message: Message, state: FSMContext):
         await state.set_state(Send.ph_true)
         await state.update_data(ph_true=message.photo[-1].file_id)
     else:
-        await state.update_data(ph_true='False')
+        await state.update_data(ph_true=None)
 
     await message.answer('Отправляем?', reply_markup=keyboard_send_mess)
 
 
 @adm_r.callback_query(F.data == 'send', RootProtect())
 async def send_message(callback: CallbackQuery, state: FSMContext):
+    message = callback.bot
+    error_msg = []
+
     await callback.answer('Запустил отправку')
     data = await state.get_data()
-    chat_id = await rq.get_list_chats()
-    for i in chat_id:
-        if data['ph_true'] != 'False':
-            await callback.bot.send_photo(chat_id=i, photo=data['ph_true'], caption=data['sendmess'])
-        else:
-            await callback.bot.send_message(chat_id=i, text=data['sendmess'])
 
-    await callback.message.edit_text('Все сообщения отправлены', reply_markup=None)
+    chat_id = await rq.get_list_chats()
+    for chat in chat_id:
+        chat_obj = chat[0]
+        try:
+            if data['ph_true']:
+                await message.send_photo(chat_id=chat_obj.chat_id,
+                                         photo=data['ph_true'],
+                                         caption=data['sendmess'])
+                continue
+            await message.send_message(chat_id=chat_obj.chat_id,
+                                       text=data['sendmess'])
+        except Exception as err:
+            error_msg.append(f'<b>{chat_obj.chat_title}</b> ({chat_obj.chat_id}): {str(err)}')
+    else:
+        if error_msg:
+            list_error = '\n'.join(error_msg)
+            message_to_send = (f'Возникли ошибки при отправке: \n\n'
+                               f'{list_error}')
+            await callback.message.edit_text(message_to_send, reply_markup=None)
+        else:
+            await callback.message.edit_text('Все сообщения отправлены', reply_markup=None)
+
     await state.clear()
 
 
@@ -252,12 +270,15 @@ async def set_admins(message: Message, state: FSMContext):
         user_id = int(message.text)
     except TypeError as err:
         await message.answer(f'Ошибка. Нужно прислать число, а не {type(message.text)}')
+        await state.clear()
         return None
+
     chat_ids = await rq.get_list_chats()
     errors_dict = {}
     for chat in chat_ids:
+        chat_obj = chat[0]
         try:
-            await message.bot.promote_chat_member(chat, user_id,
+            await message.bot.promote_chat_member(chat_obj.chat_id, user_id,
                                                   can_promote_members=True,
                                                   can_edit_messages=True,
                                                   can_delete_messages=True,
@@ -269,12 +290,13 @@ async def set_admins(message: Message, state: FSMContext):
                                                   can_manage_video_chats=True
                                                   )
         except Exception as err:
-            if not type_of_errors.get(str(err)):
-                errors_dict[chat] = 'Неизвестная ошибка'
-                logger.warning(f'Ошибка с чатом {chat}: {str(err)}')
+            error = str(err)
+            if not type_of_errors.get(error):
+                errors_dict[chat_obj.chat_title] = 'Неизвестная ошибка'
+                logger.warning(f'Ошибка с чатом {chat_obj.chat_title}: {error}')
                 continue
 
-            errors_dict[chat] = type_of_errors[str(err)]
+            errors_dict[chat_obj.chat_title] = type_of_errors[error]
             continue
 
     if errors_dict:
