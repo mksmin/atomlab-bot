@@ -8,7 +8,6 @@ config.read(path_of_settings)
 
 class DBConfig:
     def __init__(self):
-        self.db_start: bool = self.str_to_bool(config['Database']['db_start'])
         self.echo_mode: bool = self.str_to_bool(config['Database']['echo_mode'])
 
     @staticmethod
