@@ -10,7 +10,6 @@ from aiogram.enums import ParseMode
 # import from modules
 from app.handlers import router
 from app.adminpanel import adm_r
-from app.database.models import async_main
 from config.config import get_tokens, get_id_chat_root, logger
 from config import dbconf
 
@@ -41,20 +40,8 @@ async def main(bot) -> None:
         await bot.session.close()
 
 
-async def start_db(root_id) -> None:
-    try:
-        await async_main()
-        logger.info('Start database')
-    except Exception:
-        logger.error('Проблема с базой данных')
-        await bot.send_message(chat_id=int(root_id), text="Проблема с базой данных")
-
-
 async def on_startup(dispatcher) -> None:
     root_user_id = await get_id_chat_root()
-    if dbconf.db_start:
-        await start_db(root_user_id)
-
     await bot.send_message(chat_id=int(root_user_id), text="Бот запущен")
 
 
