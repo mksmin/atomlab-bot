@@ -11,12 +11,12 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 
 # import from modules
-from config.config import get_tokens
+from config import get_tokens, dbconf
 
 # create engine and connection to DB
 post_host_token = asyncio.run(get_tokens('PostSQL_host'))
 engine = create_async_engine(url=post_host_token,
-                             echo=False)  # create engine
+                             echo=dbconf.echo_mode)  # create engine
 async_session = async_sessionmaker(engine)  # create session func
 
 
