@@ -37,11 +37,12 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tg_id = mapped_column(BigInteger, nullable=False, unique=True)
     tg_username: Mapped[str] = mapped_column(String(30), nullable=True)
-    karma_start_value: Mapped[int] = mapped_column(nullable=False, default=5)
-    total_karma: Mapped[int] = mapped_column(nullable=False, default=0)
+    karma_start_value: Mapped[int] = mapped_column(nullable=False, default=20, server_default='20')
+    total_karma: Mapped[int] = mapped_column(nullable=False, default=0, server_default='0')
 
 
 class Chat(Base):
+
     """
     Table with data of chats
     """
@@ -63,17 +64,17 @@ class ChatUsers(Base):
     chat_id = mapped_column(BigInteger, ForeignKey('chats.chat_id'), nullable=False)
 
 
-async def async_main() -> None:
-    """
-    Func create all tables in database
-    """
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+# async def async_main() -> None:
+#     """
+#     Func create all tables in database
+#     """
+#     async with engine.begin() as conn:
+#         await conn.run_sync(Base.metadata.create_all)
 
 
-async def drop_all() -> None:
-    """
-    Func drop all tables in database
-    """
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+# async def drop_all() -> None:
+#     """
+#     Func drop all tables in database
+#     """
+#     async with engine.begin() as conn:
+#         await conn.run_sync(Base.metadata.drop_all)
