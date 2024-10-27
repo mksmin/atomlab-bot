@@ -123,6 +123,14 @@ async def add_rep_to_user(message: Message) -> None:
 
 # /-- karma end --/
 
+@router.message(Command('myid'), CheckChatBot(chat_type='private'))
+async def get_panel(message: Message) -> None:
+    """
+    Функция для получения пользователем своего тг-id
+    """
+    text_for_message = f'Твой id в телеграме: {message.from_user.id}'
+    await message.reply(text_for_message)
+
 
 @router.message(CheckChatBot(chat_type='private'))
 async def help_to_user(message: Message) -> None:
