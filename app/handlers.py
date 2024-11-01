@@ -28,6 +28,7 @@ async def cmd_start(message: Message) -> None:
 
 
 # Добавляем пользователя в бд после вступления в чат
+# TODO: добавить хендлер, когда пользователя удаляют из чата или он сам выходит
 @router.chat_member(ChatMemberUpdatedFilter(
     member_status_changed=
     (KICKED | LEFT | -RESTRICTED)
@@ -115,3 +116,5 @@ async def get_panel(message: Message) -> None:
 async def help_to_user(message: Message) -> None:
     text = msg_texts.text_for_help_user
     await message.answer(text)
+
+
