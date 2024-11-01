@@ -5,10 +5,12 @@ Module with functions for requesting data from database
 # import from
 from functools import wraps
 from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
 
 # import from modules
 from app.database.models import async_session, ChatUsers, Chat, User
+from config import logger
 
 
 def connection(function):
@@ -22,6 +24,17 @@ def connection(function):
             return await function(session, *args, **kwargs)
 
     return wrapper
+
+
+async def get_one_user_link_with_chat(session: async_session, user_id: int, chat_id: int) -> ChatUsers | None:
+    """
+    The function for getting ChatUser obj
+    :param session: async database session from SQLAlchemy
+    :param user_id: (int)
+    :param chat_id: (int)
+    :return: ChatUsers's obj if it's exist, or None if it doesn't exist
+    """
+    return await session.scalar(select(ChatUsers).where(ChatUsers.tg_id == user_id, ChatUsers.chat_id == chat_id))
 
 
 @connection
@@ -41,9 +54,10 @@ async def set_user_chat(session, tg_id, chat_id) -> int:
 
     is_private_chat = (tg_id == chat_id)  # Фильтр, чтобы в базу не добавлялся чат пользователя с ботом
     # Check if there is an entry in database:
-    user_in_db = await session.scalar(
-        select(ChatUsers).where(ChatUsers.tg_id == tg_id,
-                                ChatUsers.chat_id == chat_id))
+    user_in_db = await get_one_user_link_with_chat(session, tg_id, chat_id)
+    # user_in_db = await session.scalar(
+    #     select(ChatUsers).where(ChatUsers.tg_id == tg_id,
+    #                             ChatUsers.chat_id == chat_id))
 
     if not user_in_db and not is_private_chat:
         session.add(ChatUsers(tg_id=tg_id, chat_id=chat_id))
@@ -173,4 +187,22 @@ async def update_karma(session, tg_id_sender: int, send_new_karma: int,
     r = await session.scalar(select(User).where(User.tg_id == tg_id_recipient))
     r.total_karma = recipient_new_karma
     session.add(s, r)
+    await session.commit()
+
+
+@connection
+async def remove_link_from_db(session: async_session, tg_user_id: int, tg_chat_id) -> None:
+    """
+    The func removes the user's link with the chat from the database
+    :param session: session of SQLAlchemy
+    :param tg_user_id: (int) id of the user from telegram. Example: 123456
+    :param tg_chat_id: (int) id of the chat from telegram. Example: -123456 or 123456
+    :return: None
+    """
+    link_user_chat = await get_one_user_link_with_chat(session, tg_user_id, tg_chat_id)
+
+    if link_user_chat:
+        await session.delete(link_user_chat)
+        logger.info(f'The link {link_user_chat.tg_id} <-> {link_user_chat.chat_id} has been deleted')
+
     await session.commit()
