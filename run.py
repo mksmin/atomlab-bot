@@ -11,7 +11,7 @@ from aiogram.enums import ParseMode
 from app.handlers import router
 from app.adminpanel import adm_r
 from config.config import get_tokens, get_id_chat_root, logger
-from config import dbconf
+from config import BotNotification as bn
 
 
 async def start() -> Bot:
@@ -41,14 +41,17 @@ async def main(bot) -> None:
 
 
 async def on_startup(dispatcher) -> None:
-    root_user_id = await get_id_chat_root()
-    await bot.send_message(chat_id=int(root_user_id), text="Бот запущен")
+    if bn.bot_start:
+        root_user_id = await get_id_chat_root()
+        await bot.send_message(chat_id=int(root_user_id), text="Бот запущен")
+    return
 
 
 async def on_shutdown(dispatcher) -> None:
-    root_user_id = await get_id_chat_root()
-    await bot.send_message(chat_id=int(root_user_id), text="Бот останавливается")
-
+    if bn.bot_start:
+        root_user_id = await get_id_chat_root()
+        await bot.send_message(chat_id=int(root_user_id), text="Бот останавливается")
+    return
 
 # Run tg_bot and start log
 if __name__ == '__main__':
