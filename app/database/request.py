@@ -49,7 +49,7 @@ async def set_user_chat(session, tg_id, chat_id) -> int:
         session.add(ChatUsers(tg_id=tg_id, chat_id=chat_id))
         await session.commit()  # save
 
-    # Надо проверить, что будет, если записи не будет -- вернет ли 0 или None
+    # TODO: следующие участки когда убрать в отдельную функцию
     count_value = await session.scalar(select(func.count()).select_from(ChatUsers).where(ChatUsers.tg_id == tg_id))
     return count_value
 
