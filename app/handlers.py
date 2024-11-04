@@ -10,8 +10,7 @@ from aiogram.types import Message, ChatMemberUpdated
 import app.database.request as rq
 from app.messages import msg_texts
 from app.middlewares import CheckChatBot
-from config.config import get_id_chat_root
-
+from config import get_id_chat_root, logger
 
 router = Router()  # main handler
 
@@ -70,6 +69,34 @@ async def get_member(update: ChatMemberUpdated) -> None:
                                            f'\nвступил в несколько чатов: '
                                            f'\n\n{chats_titles_list}'
                                            f'\n\nСвяжись с ним, чтобы обсудить детали')
+
+
+@router.chat_member(
+    ChatMemberUpdatedFilter(
+        member_status_changed=
+        (+RESTRICTED | MEMBER)
+        >>
+        (KICKED | LEFT | -RESTRICTED)
+    )
+)
+async def remove_chat_member(update: ChatMemberUpdated) -> None:
+    """
+    Функция удаляет из БД связь пользователя с чатом в таблице chatandusers
+    когда пользователь выходит из чата или его кикают
+    :param update:
+    :return: None
+    """
+    chat = update.chat
+    from_user = update.from_user
+
+    try:
+        await rq.remove_link_from_db(
+            tg_user_id=from_user.id,
+            tg_chat_id=chat.id,
+        )
+        logger.info(f'Успешно удалено')
+    except Exception as e:
+        logger.warning(f'Ошибка при удалении user id {from_user.id} и chat id {chat.id}: {e}')
 
 
 # /-- karma start --/
@@ -137,5 +164,3 @@ async def get_panel(message: Message) -> None:
 async def help_to_user(message: Message) -> None:
     text = msg_texts.text_for_help_user
     await message.answer(text)
-
-
