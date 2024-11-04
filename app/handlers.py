@@ -88,14 +88,18 @@ async def remove_chat_member(update: ChatMemberUpdated) -> None:
     """
     chat = update.chat
     from_user = update.new_chat_member.user
-    print(f'Chat is = {chat.id}, user = {from_user.id}')
     try:
         await rq.remove_link_from_db(
             tg_user_id=from_user.id,
             tg_chat_id=chat.id,
         )
     except Exception as e:
-        logger.warning(f'Ошибка при удалении user id {from_user.id} и chat id {chat.id}: {e}')
+        error_text_message = f'Ошибка при удалении user id {from_user.id} и chat id {chat.id}: {e}'
+        logger.warning(error_text_message)
+
+        root_id = await get_id_chat_root()
+        await update.bot.send_message(chat_id=int(root_id),
+                                      text=error_text_message)
 
 
 # /-- karma start --/
