@@ -40,6 +40,12 @@ class User(Base):
     karma_start_value: Mapped[int] = mapped_column(nullable=False, default=20, server_default='20')
     total_karma: Mapped[int] = mapped_column(nullable=False, default=0, server_default='0')
 
+    def remove_karma_points(self):
+        self.karma_start_value -= 1
+
+    def add_karma_value(self):
+        self.total_karma += 1
+
 
 class Chat(Base):
 

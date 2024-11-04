@@ -81,44 +81,23 @@ async def add_rep_to_user(message: Message) -> None:
     id_sender = message.from_user.id
 
     if id_recipient == message.bot.id:
-        await message.reply('Боту нельзя поднять репутацию, но спасибо, что ты ценишь его работу')
+        await message.reply(msg_texts.bot_karma_message)
         return None
     if id_recipient == id_sender:
-        await message.reply('Cебе нельзя поднять репутацию')
+        await message.reply(msg_texts.self_karma_raise)
         return None
 
-    result = await rq.check_karma(id_sender, id_recipient)
-    dict_value = {
-        'send': '',
-        'recipient': '',
-    }
-    keys_of_dict = list(dict_value.keys())
+    sender, recipient = await rq.check_karma(id_sender, id_recipient)
 
-    for ind in range(2):
-        for i, v in result[ind]:
-            dict_new = {
-                'ID': i,
-                'karma': v
-            }
-
-            dict_value.update({
-                keys_of_dict[ind]: dict_new
-            })
-
-    sender_id, sender_karma = dict_value['send']['ID'], dict_value['send']['karma']
-    recipient_id, recipient_karma = dict_value['recipient']['ID'], dict_value['recipient']['karma']
-
-    if sender_karma <= 0:
-        await message.reply(f'Упс! У тебя закончились очки репутации')
+    if sender.karma_start_value <= 0:
+        await message.reply(msg_texts.karmas_points_over)
     else:
-        sender_karma -= 1
-        recipient_karma += 1
         recipient_username = message.reply_to_message.from_user.username
+        sender.remove_karma_points()
 
-        await rq.update_karma(sender_id, sender_karma,
-                              recipient_id, recipient_karma)
+        await rq.update_karma(id_sender, id_recipient)
         await message.reply(f'Репутация @{recipient_username} повышена. '
-                            f'У тебя осталось очков репутации - <b>{sender_karma}</b>')
+                            f'У тебя осталось очков репутации - <b>{sender.karma_start_value}</b>')
 
 
 # /-- karma end --/

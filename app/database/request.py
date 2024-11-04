@@ -125,12 +125,12 @@ async def get_list_chats(session) -> list:
 
     :return: 'sqlalchemy.engine.row.Row' as [(<class Chat>,), (<class Chat>,)] list with classes of Chat
     """
-    data = await session.execute(select(Chat))
-    return data
+    list_of_chats = await session.execute(select(Chat))
+    return list_of_chats
 
 
 @connection
-async def check_karma(session, tg_id_sender: int, tg_id_recipient: int) -> tuple:
+async def check_karma(session, tg_id_sender: int, tg_id_recipient: int) -> tuple[User, User]:
     """
     The function is to connect to the database and receive the value of the sender's and recipient's karma
 
@@ -147,30 +147,26 @@ async def check_karma(session, tg_id_sender: int, tg_id_recipient: int) -> tuple
     if not sender:
         await set_user(tg_id_sender)
 
-    text_recipient = text(f"SELECT tg_id, total_karma FROM users WHERE tg_id = {tg_id_recipient}")
-    text_sender = text(f"SELECT tg_id, karma_start_value FROM users WHERE tg_id = {tg_id_sender}")
-    karma_sender = await session.execute(text_sender)
-    karma_recipient = await session.execute(text_recipient)
-    await session.commit()
-    return karma_sender, karma_recipient
+    sender = await session.scalar(select(User).where(User.tg_id == tg_id_sender))
+    recipient = await session.scalar(select(User).where(User.tg_id == tg_id_recipient))
+    return sender, recipient
 
 
 @connection
-async def update_karma(session, tg_id_sender: int, send_new_karma: int,
-                       tg_id_recipient: int, recipient_new_karma: int) -> None:
+async def update_karma(session, tg_id_sender: int, tg_id_recipient: int) -> None:
     """
     The function is to connect to the database and update the value of sender's and recipient's karma
 
     :param session: is connector to database from decorator @connection
     :param tg_id_sender: (int) id of the user from telegram. Example: 123456
-    :param send_new_karma: (int) The new value of karma. Example: 5
     :param tg_id_recipient: (int) id of the user from telegram. Example: 123456
-    :param recipient_new_karma: (int) The new value of karma. Example: 5
     :return: None
     """
     s = await session.scalar(select(User).where(User.tg_id == tg_id_sender))
-    s.karma_start_value = send_new_karma
+    s.remove_karma_points()
+
     r = await session.scalar(select(User).where(User.tg_id == tg_id_recipient))
-    r.total_karma = recipient_new_karma
+    r.add_karma_value()
+
     session.add(s, r)
     await session.commit()
