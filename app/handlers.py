@@ -87,14 +87,13 @@ async def remove_chat_member(update: ChatMemberUpdated) -> None:
     :return: None
     """
     chat = update.chat
-    from_user = update.from_user
-
+    from_user = update.new_chat_member.user
+    print(f'Chat is = {chat.id}, user = {from_user.id}')
     try:
         await rq.remove_link_from_db(
             tg_user_id=from_user.id,
             tg_chat_id=chat.id,
         )
-        logger.info(f'Успешно удалено')
     except Exception as e:
         logger.warning(f'Ошибка при удалении user id {from_user.id} и chat id {chat.id}: {e}')
 
