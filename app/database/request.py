@@ -34,11 +34,18 @@ async def get_one_user_link_with_chat(session: async_session, user_id: int, chat
     :param chat_id: (int)
     :return: ChatUsers's obj if it's exist, or None if it doesn't exist
     """
-    return await session.scalar(select(ChatUsers).where(ChatUsers.tg_id == user_id, ChatUsers.chat_id == chat_id))
+    result = await session.scalar(select(ChatUsers).where(ChatUsers.tg_id == user_id,
+                                                          ChatUsers.chat_id == chat_id))
+    return result
+
+
+async def get_one_user_by_tgid(session: async_session, tg_id: int) -> User | None:
+    user = await session.scalar(select(User).where(User.tg_id == tg_id))
+    return user
 
 
 @connection
-async def set_user_chat(session, tg_id, chat_id) -> int:
+async def set_user_chat(session: async_session, tg_id, chat_id) -> None:
     """
     Function for writing a user and chat, where he's member, to database
 
@@ -53,23 +60,23 @@ async def set_user_chat(session, tg_id, chat_id) -> int:
     """
 
     is_private_chat = (tg_id == chat_id)  # Фильтр, чтобы в базу не добавлялся чат пользователя с ботом
+
     # Check if there is an entry in database:
     user_in_db = await get_one_user_link_with_chat(session, tg_id, chat_id)
-    # user_in_db = await session.scalar(
-    #     select(ChatUsers).where(ChatUsers.tg_id == tg_id,
-    #                             ChatUsers.chat_id == chat_id))
 
     if not user_in_db and not is_private_chat:
         session.add(ChatUsers(tg_id=tg_id, chat_id=chat_id))
-        await session.commit()  # save
+        await session.commit()
 
-    # TODO: следующие участки когда убрать в отдельную функцию
+
+@connection
+async def get_count_users_chat(session: async_session, tg_id: int) -> int:
     count_value = await session.scalar(select(func.count()).select_from(ChatUsers).where(ChatUsers.tg_id == tg_id))
     return count_value
 
 
 @connection
-async def set_user(session, tg_id, username: str = 'Null') -> None:
+async def set_user(session: async_session, tg_id, username: str = 'Null') -> None:
     """
     Function for writing a user to database
 
@@ -79,7 +86,7 @@ async def set_user(session, tg_id, username: str = 'Null') -> None:
     :return: None
     """
 
-    user = await session.scalar(select(User).where(User.tg_id == tg_id))
+    user = await get_one_user_by_tgid(session, tg_id)
 
     if not user:
         session.add(User(tg_id=tg_id, tg_username=username))
@@ -87,7 +94,7 @@ async def set_user(session, tg_id, username: str = 'Null') -> None:
 
 
 @connection
-async def set_chat(session, chat_id, chat_title) -> None:
+async def set_chat(session: async_session, chat_id: int, chat_title) -> None:
     """
     Function for writing a chat's info to database
 
@@ -105,7 +112,7 @@ async def set_chat(session, chat_id, chat_title) -> None:
 
 
 @connection
-async def get_chats(session, tg_id) -> str:
+async def get_list_of_users_chats(session: async_session, tg_id: int) -> list[str]:
     """
     Function for read database and get list of chats, where user is member
 
@@ -120,20 +127,13 @@ async def get_chats(session, tg_id) -> str:
     request_with_filter = request_with_join.where(ChatUsers.tg_id == tg_id)
     data_from_db = await session.execute(request_with_filter)
 
-    chats_titles_list = data_from_db.fetchall()
-    data_list = []
-    for name in chats_titles_list:
-        first_strip = str(name).strip("()")
-        second_strip = f'— {first_strip.strip(",")}'
-        data_list.append(second_strip)
+    data_list = [chat_titile[0] for chat_titile in data_from_db]
 
-    data_return = '\n'.join(map(str, data_list))
-
-    return data_return
+    return data_list
 
 
 @connection
-async def get_list_chats(session) -> list:
+async def get_list_chats(session: async_session) -> list:
     """
     Function for read database and get list of all chats
 
@@ -144,30 +144,31 @@ async def get_list_chats(session) -> list:
 
 
 @connection
-async def check_karma(session, tg_id_sender: int, tg_id_recipient: int) -> tuple[User, User]:
+async def check_karma(session: async_session, tg_id_sender: int, tg_id_recipient: int) -> tuple[User, User]:
     """
-    The function is to connect to the database and receive the value of the sender's and recipient's karma
+    The function is to connect to the database and receive the User's obj as tuple[User(Sender), User(Recipient)]
 
     :param session: is connector to database from decorator @connection
     :param tg_id_sender: (int) id of the user from telegram. Example: 123456
     :param tg_id_recipient: (int) id of the user from telegram. Example: 123456
-    :return: tuple with the value of sender's and recipient's karma as int. Example: (123, 456)
+    :return: tuple[User, User]
     """
-    sender = await session.scalar(select(User).where(User.tg_id == tg_id_sender))
-    recipient = await session.scalar(select(User).where(User.tg_id == tg_id_recipient))
+    sender = await get_one_user_by_tgid(session, tg_id_sender)
+    recipient = await get_one_user_by_tgid(session, tg_id_recipient)
 
     if not recipient:
         await set_user(tg_id_recipient)
+        sender = await get_one_user_by_tgid(session, tg_id_sender)
+
     if not sender:
         await set_user(tg_id_sender)
+        recipient = await get_one_user_by_tgid(session, tg_id_recipient)
 
-    sender = await session.scalar(select(User).where(User.tg_id == tg_id_sender))
-    recipient = await session.scalar(select(User).where(User.tg_id == tg_id_recipient))
     return sender, recipient
 
 
 @connection
-async def update_karma(session, tg_id_sender: int, tg_id_recipient: int) -> None:
+async def update_karma(session: async_session, tg_id_sender: int, tg_id_recipient: int) -> None:
     """
     The function is to connect to the database and update the value of sender's and recipient's karma
 
@@ -176,10 +177,10 @@ async def update_karma(session, tg_id_sender: int, tg_id_recipient: int) -> None
     :param tg_id_recipient: (int) id of the user from telegram. Example: 123456
     :return: None
     """
-    s = await session.scalar(select(User).where(User.tg_id == tg_id_sender))
+    s = await get_one_user_by_tgid(session, tg_id_sender)
     s.remove_karma_points()
 
-    r = await session.scalar(select(User).where(User.tg_id == tg_id_recipient))
+    r = await get_one_user_by_tgid(session, tg_id_recipient)
     r.add_karma_value()
 
     session.add(s, r)

@@ -27,7 +27,6 @@ async def cmd_start(message: Message) -> None:
 
 
 # Добавляем пользователя в бд после вступления в чат
-
 @router.chat_member(ChatMemberUpdatedFilter(
     member_status_changed=
     (KICKED | LEFT | -RESTRICTED)
@@ -42,15 +41,16 @@ async def get_member(update: ChatMemberUpdated) -> None:
     :return: None
     """
     chat = update.chat
-    from_user = update.new_chat_member.user
+    user = update.new_chat_member.user
 
-    await rq.set_user(from_user.id, from_user.username)  # регистрируем юзера
-    count_chats = await rq.set_user_chat(from_user.id, chat.id)  # проверяем количество чатов
+    await rq.set_user(user.id, user.username)  # регистрируем юзера
+    await rq.set_user_chat(user.id, chat.id)  # записываем в какой чат вступил
+    count_chats = await rq.get_count_users_chat(user.id)  # получаем количество чатов
 
-    if from_user.username is None:
-        username_ = f'{from_user.first_name}'
+    if user.username is None:
+        username_ = f'{user.first_name}'
     else:
-        username_ = f'{from_user.first_name} (@{from_user.username})'
+        username_ = f'{user.first_name} (@{user.username})'
 
     if count_chats < 2:
         hello_txt = random.choice(msg_texts.hello_for_user)
@@ -63,11 +63,12 @@ async def get_member(update: ChatMemberUpdated) -> None:
         await update.answer(message_text)
 
         root_id = await get_id_chat_root()
-        chats_titles_list = await rq.get_chats(from_user.id)
+        chats_titles_list = await rq.get_list_of_users_chats(user.id)
+        chats_titles_str = '\n'.join(map(str, chats_titles_list))
         await update.bot.send_message(chat_id=int(root_id),
                                       text=f'{username_}'
                                            f'\nвступил в несколько чатов: '
-                                           f'\n\n{chats_titles_list}'
+                                           f'\n\n — {chats_titles_str}'
                                            f'\n\nСвяжись с ним, чтобы обсудить детали')
 
 
@@ -87,14 +88,14 @@ async def remove_chat_member(update: ChatMemberUpdated) -> None:
     :return: None
     """
     chat = update.chat
-    from_user = update.new_chat_member.user
+    user = update.new_chat_member.user
     try:
         await rq.remove_link_from_db(
-            tg_user_id=from_user.id,
+            tg_user_id=user.id,
             tg_chat_id=chat.id,
         )
     except Exception as e:
-        error_text_message = f'Ошибка при удалении user id {from_user.id} и chat id {chat.id}: {e}'
+        error_text_message = f'Ошибка при удалении user id {user.id} и chat id {chat.id}: {e}'
         logger.warning(error_text_message)
 
         root_id = await get_id_chat_root()
