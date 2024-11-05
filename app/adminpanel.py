@@ -80,10 +80,7 @@ async def bot_added_as_admin(update: ChatMemberUpdated):
 @adm_r.message(Command('send'), RootProtect(), CheckChatBot(chat_type='private'))
 async def sendchats(message: Message, state: FSMContext):
     await state.set_state(Send.sendmess)  # Состояние ожидания сообщения
-    await message.answer(f'Пришли сообщение для отправки'
-                         f'\n\nЭто может быть фотография с описанием '
-                         f'или форматированный текст'
-                         f'\n\nДругой контент отправлять пока не умею')
+    await message.answer(text=mt.start_message_for_func_sendchats)
 
 
 @adm_r.message(Send.sendmess, RootProtect(), CheckChatBot(chat_type='private'))
