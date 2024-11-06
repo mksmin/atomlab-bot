@@ -9,7 +9,7 @@ from aiogram.types import Message, ChatMemberUpdated
 # import from modules
 import app.database.request as rq
 from app.messages import msg_texts
-from app.middlewares import CheckChatBot
+from app.middlewares import ChatType
 from config import get_id_chat_root, logger
 
 router = Router()  # main handler
@@ -107,7 +107,7 @@ async def remove_chat_member(update: ChatMemberUpdated) -> None:
 # Функция увеличения репутации
 @router.message(F.reply_to_message,
                 F.text.lower().contains('+rep'),
-                CheckChatBot(chat_type=["group", "supergroup"]))
+                ChatType(chat_type=["group", "supergroup"]))
 async def add_rep_to_user(message: Message) -> None:
     id_recipient = message.reply_to_message.from_user.id
     id_sender = message.from_user.id
@@ -134,7 +134,7 @@ async def add_rep_to_user(message: Message) -> None:
 
 # /-- karma end --/
 
-@router.message(Command('myid'), CheckChatBot(chat_type='private'))
+@router.message(Command('myid'), ChatType(chat_type='private'))
 async def get_panel(message: Message) -> None:
     """
     Функция для получения пользователем своего тг-id
@@ -143,7 +143,7 @@ async def get_panel(message: Message) -> None:
     await message.reply(text_for_message)
 
 
-@router.message(CheckChatBot(chat_type='private'))
+@router.message(ChatType(chat_type='private'))
 async def help_to_user(message: Message) -> None:
     text = msg_texts.text_for_help_user
     await message.answer(text)

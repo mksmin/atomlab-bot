@@ -43,14 +43,14 @@ async def main(bot) -> None:
 async def on_startup(dispatcher) -> None:
     if bn.bot_start:
         root_user_id = await get_id_chat_root()
-        await bot.send_message(chat_id=int(root_user_id), text="Бот запущен")
+        await bot.send_message(chat_id=root_user_id, text="Бот запущен")
     return
 
 
 async def on_shutdown(dispatcher) -> None:
     if bn.bot_start:
         root_user_id = await get_id_chat_root()
-        await bot.send_message(chat_id=int(root_user_id), text="Бот останавливается")
+        await bot.send_message(chat_id=root_user_id, text="Бот останавливается")
     return
 
 # Run tg_bot and start log

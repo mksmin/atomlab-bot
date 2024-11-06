@@ -29,8 +29,9 @@ async def get_tokens(name_of_token: str) -> str:
         print("No .env file found")
 
 
-async def get_id_chat_root() -> str:
+async def get_id_chat_root() -> int:
     """
     :return: id of root-chat as str
     """
-    return await get_tokens("ROOT_CHAT")
+    root_tgid = await get_tokens("ROOT_CHAT")
+    return int(root_tgid)

@@ -68,19 +68,3 @@ class ChatUsers(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tg_id = mapped_column(BigInteger, ForeignKey('users.tg_id'), nullable=False)
     chat_id = mapped_column(BigInteger, ForeignKey('chats.chat_id'), nullable=False)
-
-
-# async def async_main() -> None:
-#     """
-#     Func create all tables in database
-#     """
-#     async with engine.begin() as conn:
-#         await conn.run_sync(Base.metadata.create_all)
-
-
-# async def drop_all() -> None:
-#     """
-#     Func drop all tables in database
-#     """
-#     async with engine.begin() as conn:
-#         await conn.run_sync(Base.metadata.drop_all)

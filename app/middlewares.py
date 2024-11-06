@@ -20,7 +20,7 @@ class RootProtect(Filter):
         return str(message.from_user.id) == root_id
 
 
-class CheckChatBot(Filter):
+class ChatType(Filter):
     """
     The class for filtering decorator
     waiting for type of chat in private, group or supergroup

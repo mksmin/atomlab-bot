@@ -12,7 +12,7 @@ from aiogram.fsm.context import FSMContext
 # import functions from my modules
 import app.database.request as rq
 from app.keyboards import keyboard_send_mess
-from app.middlewares import CheckChatBot, RootProtect
+from app.middlewares import ChatType, RootProtect
 from app.statesuser import Send, Admins
 from config.config import get_id_chat_root, logger
 from app.messages import msg_texts as mt
@@ -38,7 +38,7 @@ async def get_chat_id(message: Message) -> None:
     func get chatid of where root-user used the command
     and sends it to the private chat of the root-user
     """
-    root_id = int(await get_id_chat_root())
+    root_id = await get_id_chat_root()
     await message.bot.send_message(chat_id=root_id,
                                    text=f'Ты запросил ID чата\n\n'
                                         f'Чат id - {message.chat.id}\n'
@@ -61,7 +61,7 @@ async def register_chat_to_db(message: Message) -> None:
 )
 async def bot_added_as_admin(update: ChatMemberUpdated):
     root_id = await get_id_chat_root()
-    await update.bot.send_message(chat_id=int(root_id),
+    await update.bot.send_message(chat_id=root_id,
                                   text=f'Бот стал администратором группы'
                                        f'\n\n<b>Название группы:</b>'
                                        f'\n{update.chat.title}'
@@ -77,13 +77,13 @@ async def bot_added_as_admin(update: ChatMemberUpdated):
 # Функция отправки сообщения во все чаты
 # Умеет отлавливать фото с тектом или только текст (форматированный)
 # Не умеет работать с остальным контентом
-@adm_r.message(Command('send'), RootProtect(), CheckChatBot(chat_type='private'))
+@adm_r.message(Command('send'), RootProtect(), ChatType(chat_type='private'))
 async def sendchats(message: Message, state: FSMContext):
     await state.set_state(Send.sendmess)  # Состояние ожидания сообщения
     await message.answer(text=mt.start_message_for_func_sendchats)
 
 
-@adm_r.message(Send.sendmess, RootProtect(), CheckChatBot(chat_type='private'))
+@adm_r.message(Send.sendmess, RootProtect(), ChatType(chat_type='private'))
 async def confirm(message: Message, state: FSMContext):
     await state.update_data(sendmess=message.html_text)
 
@@ -226,13 +226,13 @@ async def get_statistic(message: Message):
         await message.answer(message_to_send)
 
 
-@adm_r.message(Command('setadmin'), RootProtect(), CheckChatBot(chat_type='private'))
+@adm_r.message(Command('setadmin'), RootProtect(), ChatType(chat_type='private'))
 async def set_admin(message: Message, state: FSMContext):
     await state.set_state(Admins.admins)
     await message.answer('Пришли id пользователя, которого хочешь назначить администратором')
 
 
-@adm_r.message(Admins.admins, RootProtect(), CheckChatBot(chat_type='private'))
+@adm_r.message(Admins.admins, RootProtect(), ChatType(chat_type='private'))
 async def set_admins(message: Message, state: FSMContext):
     type_of_errors = {
         'Telegram server says - Bad Request: not enough rights': 'Недостаточно прав',

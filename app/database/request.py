@@ -92,6 +92,8 @@ async def set_user(session: async_session, tg_id, username: str = 'Null') -> Non
         session.add(User(tg_id=tg_id, tg_username=username))
         await session.commit()  # save info
 
+    logger.info(f'The user {username} {tg_id} has been saved')
+
 
 @connection
 async def set_chat(session: async_session, chat_id: int, chat_title) -> None:
@@ -109,6 +111,8 @@ async def set_chat(session: async_session, chat_id: int, chat_title) -> None:
     if not chat:
         session.add(Chat(chat_id=chat_id, chat_title=chat_title))
         await session.commit()  # save
+    logger.info(f'The Chat {chat_title} {chat_id} has been saved')
+
 
 
 @connection
@@ -201,5 +205,4 @@ async def remove_link_from_db(session: async_session, tg_user_id: int, tg_chat_i
     if link_user_chat:
         await session.delete(link_user_chat)
         logger.info(f'The link {link_user_chat.tg_id} <-> {link_user_chat.chat_id} has been deleted')
-
-    await session.commit()
+        await session.commit()
