@@ -68,7 +68,7 @@ async def get_member(update: ChatMemberUpdated) -> None:
         await update.bot.send_message(chat_id=int(root_id),
                                       text=f'{username_}'
                                            f'\nвступил в несколько чатов: '
-                                           f'\n\n{chats_titles_str}'
+                                           f'\n\n— {chats_titles_str}'
                                            f'\n\nСвяжись с ним, чтобы обсудить детали')
 
 
