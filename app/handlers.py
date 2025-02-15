@@ -64,10 +64,11 @@ async def get_member(update: ChatMemberUpdated) -> None:
 
         root_id = await get_id_chat_root()
         chats_titles_list = await rq.get_list_of_users_chats(user.id)
+        chats_counter = len(chats_titles_list)
         chats_titles_str = '\n— '.join(map(str, chats_titles_list))
         await update.bot.send_message(chat_id=int(root_id),
                                       text=f'{username_}'
-                                           f'\nвступил в несколько чатов: '
+                                           f'\nвступил в несколько чатов ({chats_counter}): '
                                            f'\n\n— {chats_titles_str}'
                                            f'\n\nСвяжись с ним, чтобы обсудить детали')
 
