@@ -97,6 +97,13 @@ async def confirm(message: Message, state: FSMContext):
     else:
         await state.update_data(ph_true=None)
 
+    data = await state.get_data()
+    await message.answer(text='Вот так будет выглядеть твое сообщение:')
+    if data['ph_true'] != None:
+        await message.bot.send_photo(chat_id=message.chat.id, photo=data['ph_true'], caption=data['sendmess'])
+    else:
+        await message.answer(text=data['sendmess'])
+
     await message.answer('Отправляем?', reply_markup=keyboard_send_mess)
 
 
