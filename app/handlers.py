@@ -2,7 +2,7 @@ import random
 
 # import from libraries
 from aiogram import Router, F
-from aiogram.filters import Command, CommandStart, ChatMemberUpdatedFilter, \
+from aiogram.filters import Command, CommandStart, CommandObject, ChatMemberUpdatedFilter, \
     KICKED, LEFT, MEMBER, RESTRICTED
 from aiogram.types import Message, ChatMemberUpdated
 
@@ -16,14 +16,41 @@ router = Router()  # main handler
 
 
 @router.message(CommandStart())
-async def cmd_start(message: Message) -> None:
+async def cmd_start(message: Message, command: CommandObject) -> None:
     """
     Start handler
     :return: none
     """
+    try:
+        args: str = command.
+
+        if args:
+            args_list: list = args.split('=')
+            if len(args_list) > 1:
+                key, value = args_list[0], args_list[1]
+                await message.answer(f'Получил аргументы: {key}, {value}')
+        else:
+            await message.answer(f'аргументов нет')
+    except Exception as e:
+        print(e)
+        pass
+
     from_user = message.from_user
     await rq.set_user(from_user.id, from_user.username)
     await message.answer(f'Привет, {from_user.first_name}!')
+
+
+@router.message(Command('test'))
+async def cmd_test(message: Message, command: CommandObject) -> None:
+    try:
+        args = command.args
+        if args:
+            key = args
+            await message.answer(f'Получил аргументы: {key}')
+    except Exception as e:
+        pass
+    finally:
+        await message.answer(f'Ты вызвал тестовую команду')
 
 
 # Добавляем пользователя в бд после вступления в чат
