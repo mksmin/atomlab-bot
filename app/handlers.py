@@ -22,7 +22,7 @@ async def cmd_start(message: Message, command: CommandObject) -> None:
     :return: none
     """
     try:
-        args: str = command.
+        args: str = command.args
 
         if args:
             args_list: list = args.split('=')
