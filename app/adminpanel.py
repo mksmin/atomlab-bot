@@ -389,8 +389,10 @@ async def save_prj(callback: CallbackQuery, state: FSMContext):
     data_list = [result[0].prj_name for result in list_projects_objects]
 
     if len(data_list) > 0:
+        list_of_names = '\n— '.join(data_list)
+
         msg_text = (f'Вот твои проекты:\n'
-                    f'— {"\n— ".join(data_list)}')
+                    f'— {list_of_names}')
     else:
         msg_text = 'У тебя нет проектов'
 
