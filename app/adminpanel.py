@@ -399,6 +399,12 @@ async def save_prj(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(text=msg_text)
 
 
+@adm_r.callback_query(F.data == 'create_prj', RootProtect())
+async def create_prj_through_button(callback: CallbackQuery, state: FSMContext):
+    await callback.answer('Создаем проект')
+    await create_project(message=callback.message, state=state)
+
+
 @adm_r.message(Command('help'), RootProtect())
 async def help_for_admin(message: Message):
     await message.answer(text=mt.text_for_help_admin)

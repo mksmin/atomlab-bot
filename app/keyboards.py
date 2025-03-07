@@ -20,4 +20,5 @@ cancel_key_prj = InlineKeyboardMarkup(inline_keyboard=[
 
 rpanel = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='Мои проекты', callback_data='myprojects')],
+    [InlineKeyboardButton(text='Создать проект', callback_data='create_prj')],
 ])
