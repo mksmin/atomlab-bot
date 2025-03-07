@@ -10,3 +10,11 @@ class Send(StatesGroup):
 
 class Admins(StatesGroup):
     admins = State()
+
+
+class ProjectState(StatesGroup):
+    prj_name = State()
+    prj_description = State()
+    last_message_id = State()
+    save_prj = State()
+    cancel_prj = State()

@@ -30,7 +30,8 @@ async def cmd_start(message: Message, command: CommandObject) -> None:
                 key, value = args_list[0], args_list[1]
                 await message.answer(f'Получил аргументы: {key}, {value}')
         else:
-            await message.answer(f'аргументов нет')
+            # await message.answer(f'аргументов нет')
+            pass
     except Exception as e:
         print(e)
         pass

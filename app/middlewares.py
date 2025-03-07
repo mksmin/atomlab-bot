@@ -8,6 +8,8 @@ from aiogram.types import Message
 
 # import from modules
 from config.config import get_tokens
+from app.database import get_one_user_by_tgid, User
+from app.database.models import async_session
 
 
 class RootProtect(Filter):
@@ -16,8 +18,10 @@ class RootProtect(Filter):
     accept user's id, return True if id is root-user
     """
     async def __call__(self, message: Message) -> bool:
-        root_id = await get_tokens("ROOT")
-        return str(message.from_user.id) == root_id
+        async with async_session() as session:
+            user: User = await get_one_user_by_tgid(session=session, tg_id=message.from_user.id)
+        access_status = ('owner',)
+        return user.user_status in access_status
 
 
 class ChatType(Filter):

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
 
 # import from modules
-from app.database.models import async_session, ChatUsers, Chat, User
+from app.database.models import async_session, ChatUsers, Chat, User, Project
 from config import logger
 
 
@@ -114,7 +114,6 @@ async def set_chat(session: async_session, chat_id: int, chat_title) -> None:
     logger.info(f'The Chat {chat_title} {chat_id} has been saved')
 
 
-
 @connection
 async def get_list_of_users_chats(session: async_session, tg_id: int) -> list[str]:
     """
@@ -206,3 +205,30 @@ async def remove_link_from_db(session: async_session, tg_user_id: int, tg_chat_i
         await session.delete(link_user_chat)
         logger.info(f'The link {link_user_chat.tg_id} <-> {link_user_chat.chat_id} has been deleted')
         await session.commit()
+
+
+@connection
+async def create_project_of_user(session: async_session, project: Project) -> bool:
+    logger.info(f'Получил обьект: {project.__dict__}')
+
+    prj_is_exists = await session.scalar(select(Project).where(Project.prj_name == project.prj_name,
+                                                               Project.prj_owner == project.prj_owner))
+
+    if not prj_is_exists:
+        save_prj = Project()
+        target_attrs = set(dir(save_prj))
+
+        valid_attrs = [attr for attr in project.__dict__
+                       if attr in target_attrs]
+        logger.info(f'valid_attrs: {valid_attrs}')
+
+        for attr in valid_attrs:
+            setattr(save_prj, attr, getattr(project, attr))
+        logger.info(f'Новый обьект: {project.__dict__}')
+        session.add(save_prj)
+        await session.commit()
+        logger.info(f'The project {save_prj.prj_name} has been created')
+        return True
+    else:
+        logger.info(f'The project {prj_is_exists.prj_name} already exists')
+        return False

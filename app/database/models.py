@@ -46,7 +46,7 @@ class User(TimestampsMixin, Base):
     tg_username: Mapped[str] = mapped_column(String(30), nullable=True)
     karma_start_value: Mapped[int] = mapped_column(nullable=False, default=20, server_default='20')
     total_karma: Mapped[int] = mapped_column(nullable=False, default=0, server_default='0')
-    user_status: Mapped[str] = mapped_column(String(30), nullable=True)
+    user_status: Mapped[str] = mapped_column(String(30), nullable=True, server_default='user', default='user')
 
     def remove_karma_points(self):
         self.karma_start_value -= 1

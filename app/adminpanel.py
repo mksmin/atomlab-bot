@@ -11,9 +11,10 @@ from aiogram.fsm.context import FSMContext
 
 # import functions from my modules
 import app.database.request as rq
-from app.keyboards import keyboard_send_mess
+import app.statesuser as st
+from app.database import User, Project
+from app.keyboards import keyboard_send_mess, cancel_key_prj, keys_for_create_project
 from app.middlewares import ChatType, RootProtect
-from app.statesuser import Send, Admins
 from config.config import get_id_chat_root, logger
 from app.messages import msg_texts as mt
 
@@ -79,11 +80,11 @@ async def bot_added_as_admin(update: ChatMemberUpdated):
 # Не умеет работать с остальным контентом
 @adm_r.message(Command('send'), RootProtect(), ChatType(chat_type='private'))
 async def sendchats(message: Message, state: FSMContext):
-    await state.set_state(Send.sendmess)  # Состояние ожидания сообщения
+    await state.set_state(st.Send.sendmess)  # Состояние ожидания сообщения
     await message.answer(text=mt.start_message_for_func_sendchats)
 
 
-@adm_r.message(Send.sendmess, RootProtect(), ChatType(chat_type='private'))
+@adm_r.message(st.Send.sendmess, RootProtect(), ChatType(chat_type='private'))
 async def confirm(message: Message, state: FSMContext):
     await state.update_data(sendmess=message.html_text)
 
@@ -92,7 +93,7 @@ async def confirm(message: Message, state: FSMContext):
         print(f'{message.media_group_id = }')
 
     if message.photo:
-        await state.set_state(Send.ph_true)
+        await state.set_state(st.Send.ph_true)
         await state.update_data(ph_true=message.photo[-1].file_id)
     else:
         await state.update_data(ph_true=None)
@@ -235,11 +236,11 @@ async def get_statistic(message: Message):
 
 @adm_r.message(Command('setadmin'), RootProtect(), ChatType(chat_type='private'))
 async def set_admin(message: Message, state: FSMContext):
-    await state.set_state(Admins.admins)
+    await state.set_state(st.Admins.admins)
     await message.answer('Пришли id пользователя, которого хочешь назначить администратором')
 
 
-@adm_r.message(Admins.admins, RootProtect(), ChatType(chat_type='private'))
+@adm_r.message(st.Admins.admins, RootProtect(), ChatType(chat_type='private'))
 async def set_admins(message: Message, state: FSMContext):
     type_of_errors = {
         'Telegram server says - Bad Request: not enough rights': 'Недостаточно прав',
@@ -287,6 +288,97 @@ async def set_admins(message: Message, state: FSMContext):
     else:
         await message.answer('Закончил без ошибок')
     await state.clear()
+
+
+async def delete_keyboard_from_message(message: Message, state: FSMContext):
+    """
+    Удаляем кнопки отмены от предыдущиих сообщений, если пользователь на них не нажал, а отправил ответ
+    :param message:
+    :param state:
+    :return:
+    """
+
+    data = await state.get_data()
+    last_message_id = data.get("last_message_id")
+
+    if last_message_id:
+        try:
+            # Удаляем клавиатуру из предыдущего сообщения
+            await message.bot.edit_message_reply_markup(
+                chat_id=message.chat.id,
+                message_id=last_message_id,
+                reply_markup=None  # Убираем клавиатуру
+            )
+        except Exception as e:
+            logger.warning(f"Ошибка при редактировании кнопок: {e}")
+
+
+@adm_r.message(Command('create'), RootProtect(), ChatType(chat_type='private'))
+async def create_project(message: Message, state: FSMContext):
+    await state.set_state(st.ProjectState.prj_name)
+
+    sent_message = await message.answer(mt.create_project, reply_markup=cancel_key_prj)
+    await state.update_data(last_message_id=sent_message.message_id)
+
+
+@adm_r.message(st.ProjectState.prj_name,
+               RootProtect(),
+               ChatType(chat_type='private'))
+async def save_name_of_project(message: Message, state: FSMContext):
+    await delete_keyboard_from_message(message, state)
+
+    await state.update_data(prj_name=message.text, prj_owner=message.from_user.id)
+    await state.set_state(st.ProjectState.prj_description)
+
+    sent_message = await message.answer(mt.create_description_of_project, reply_markup=cancel_key_prj)
+    await state.update_data(last_message_id=sent_message.message_id)
+
+
+@adm_r.message(st.ProjectState.prj_description,
+               RootProtect(),
+               ChatType(chat_type='private'))
+async def save_description_of_project(message: Message, state: FSMContext):
+    await delete_keyboard_from_message(message, state)
+
+    await state.update_data(prj_description=message.text)
+    await message.answer(mt.succes_create_project)
+    data = await state.get_data()
+
+    user_project = Project(
+        prj_name=data['prj_name'],
+        prj_description=data['prj_description']
+    )
+    await message.answer(
+        text=f'<b>Название проекта: </b>\n{user_project.prj_name}\n\n'
+             f'<b>Описание проекта: </b>\n{user_project.prj_description}\n\n'
+    )
+    await message.answer('Сохранить проект?', reply_markup=keys_for_create_project)
+
+
+@adm_r.callback_query(F.data == 'cancel_prj', RootProtect())
+async def cancel_prj(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text('Ты решил не сохранять проект', reply_markup=None)
+    await callback.answer('Операция отменена')
+    await state.clear()
+
+
+@adm_r.callback_query(F.data == 'save_prj', RootProtect())
+async def save_prj(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    user_project = Project(
+        prj_name=data['prj_name'],
+        prj_description=data['prj_description'],
+        prj_owner=data['prj_owner']
+    )
+    result = await rq.create_project_of_user(project=user_project)
+    if result:
+        await callback.message.edit_text('Проект успешно сохранен', reply_markup=None)
+        await callback.answer('Проект успешно сохранен ')
+        await state.clear()
+    else:
+        await callback.message.edit_text('Проект c таким названием уже существует ', reply_markup=None)
+        await callback.answer('Проект не сохранен')
+        await state.clear()
 
 
 @adm_r.message(Command('help'), RootProtect())
