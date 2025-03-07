@@ -4,11 +4,14 @@ Create tables in DataBase
 
 # import libraries
 import asyncio
+import uuid
 
 # import from libraries
-from sqlalchemy import BigInteger, ForeignKey, String
+from datetime import datetime
+from sqlalchemy import BigInteger, ForeignKey, String, Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
+from sqlalchemy.dialects.postgresql import UUID
 
 # import from modules
 from config import get_tokens, dbconf
@@ -27,7 +30,11 @@ class Base(AsyncAttrs, DeclarativeBase):
     pass
 
 
-class User(Base):
+class TimestampsMixin:
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, nullable=True)
+
+
+class User(TimestampsMixin, Base):
     """
     Table with data of users
     """
@@ -39,6 +46,7 @@ class User(Base):
     tg_username: Mapped[str] = mapped_column(String(30), nullable=True)
     karma_start_value: Mapped[int] = mapped_column(nullable=False, default=20, server_default='20')
     total_karma: Mapped[int] = mapped_column(nullable=False, default=0, server_default='0')
+    user_status: Mapped[str] = mapped_column(String(30), nullable=True)
 
     def remove_karma_points(self):
         self.karma_start_value -= 1
@@ -48,7 +56,6 @@ class User(Base):
 
 
 class Chat(Base):
-
     """
     Table with data of chats
     """
@@ -59,7 +66,7 @@ class Chat(Base):
     chat_title: Mapped[str] = mapped_column(String(120), nullable=True, default='null')
 
 
-class ChatUsers(Base):
+class ChatUsers(TimestampsMixin, Base):
     """
     A table linking the chats and the users who joined them
     """
@@ -68,3 +75,13 @@ class ChatUsers(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tg_id = mapped_column(BigInteger, ForeignKey('users.tg_id'), nullable=False)
     chat_id = mapped_column(BigInteger, ForeignKey('chats.chat_id'), nullable=False)
+
+
+class Project(TimestampsMixin, Base):
+    __tablename__ = 'projects'
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    uuid = mapped_column(UUID(as_uuid=True), nullable=False, default=uuid.uuid4)
+    prj_name: Mapped[str] = mapped_column(String(50), nullable=True)
+    prj_description: Mapped[str] = mapped_column(String(200), nullable=True)
+    prj_owner = mapped_column(Integer, ForeignKey('users.tg_id'), nullable=False)
