@@ -13,7 +13,7 @@ from aiogram.fsm.context import FSMContext
 import app.database.request as rq
 import app.statesuser as st
 from app.database import User, Project
-from app.keyboards import keyboard_send_mess, cancel_key_prj, keys_for_create_project
+from app.keyboards import keyboard_send_mess, cancel_key_prj, keys_for_create_project, rpanel
 from app.middlewares import ChatType, RootProtect
 from config.config import get_id_chat_root, logger
 from app.messages import msg_texts as mt
@@ -30,7 +30,7 @@ async def get_panel(message: Message) -> None:
     text_for_message = (f'Ты вызвал панель владельца\n\n'
                         f'Твой ID: {message.from_user.id}\n'
                         f'ID чата: {message.chat.id}')
-    await message.answer(text_for_message)
+    await message.answer(text_for_message, reply_markup=rpanel)
 
 
 @adm_r.message(Command('chatid'), RootProtect())
@@ -379,6 +379,22 @@ async def save_prj(callback: CallbackQuery, state: FSMContext):
         await callback.message.edit_text('Проект c таким названием уже существует ', reply_markup=None)
         await callback.answer('Проект не сохранен')
         await state.clear()
+
+
+@adm_r.callback_query(F.data == 'myprojects', RootProtect())
+async def save_prj(callback: CallbackQuery, state: FSMContext):
+    await callback.answer('Вызов списка проектов')
+
+    list_projects_objects = await rq.get_list_of_projects(tg_user_id=callback.from_user.id)
+    data_list = [result[0].prj_name for result in list_projects_objects]
+
+    if len(data_list) > 0:
+        msg_text = (f'Вот твои проекты:\n'
+                    f'— {"\n— ".join(data_list)}')
+    else:
+        msg_text = 'У тебя нет проектов'
+
+    await callback.message.answer(text=msg_text)
 
 
 @adm_r.message(Command('help'), RootProtect())

@@ -209,8 +209,6 @@ async def remove_link_from_db(session: async_session, tg_user_id: int, tg_chat_i
 
 @connection
 async def create_project_of_user(session: async_session, project: Project) -> bool:
-    logger.info(f'Получил обьект: {project.__dict__}')
-
     prj_is_exists = await session.scalar(select(Project).where(Project.prj_name == project.prj_name,
                                                                Project.prj_owner == project.prj_owner))
 
@@ -220,15 +218,20 @@ async def create_project_of_user(session: async_session, project: Project) -> bo
 
         valid_attrs = [attr for attr in project.__dict__
                        if attr in target_attrs]
-        logger.info(f'valid_attrs: {valid_attrs}')
 
         for attr in valid_attrs:
             setattr(save_prj, attr, getattr(project, attr))
-        logger.info(f'Новый обьект: {project.__dict__}')
+
         session.add(save_prj)
         await session.commit()
-        logger.info(f'The project {save_prj.prj_name} has been created')
+        logger.info(f'The new project {save_prj.prj_name} has been created by user {save_prj.prj_owner}')
         return True
     else:
         logger.info(f'The project {prj_is_exists.prj_name} already exists')
         return False
+
+
+@connection
+async def get_list_of_projects(session: async_session, tg_user_id: int) -> list[Project]:
+    list_of_chats = await session.execute(select(Project).where(Project.prj_owner == tg_user_id))
+    return list_of_chats

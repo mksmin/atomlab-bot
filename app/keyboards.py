@@ -17,3 +17,7 @@ keys_for_create_project = InlineKeyboardMarkup(inline_keyboard=[
 cancel_key_prj = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='Отменить', callback_data='cancel_prj')],
 ])
+
+rpanel = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='Мои проекты', callback_data='myprojects')],
+])
