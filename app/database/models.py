@@ -84,4 +84,4 @@ class Project(TimestampsMixin, Base):
     uuid = mapped_column(UUID(as_uuid=True), nullable=False, default=uuid.uuid4)
     prj_name: Mapped[str] = mapped_column(String(50), nullable=True)
     prj_description: Mapped[str] = mapped_column(String(200), nullable=True)
-    prj_owner = mapped_column(Integer, ForeignKey('users.tg_id'), nullable=False)
+    prj_owner = mapped_column(BigInteger, ForeignKey('users.tg_id'), nullable=False)
