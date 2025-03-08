@@ -17,19 +17,20 @@ from app.keyboards import keyboard_send_mess, cancel_key_prj, keys_for_create_pr
 from app.middlewares import ChatType, RootProtect
 from config.config import get_id_chat_root, logger
 from app.messages import msg_texts as mt
+from app.handlers import get_user_profile
 
 adm_r = Router()  # main handler
 adm_r.my_chat_member.filter(F.chat.type.in_({'group', 'supergroup'}))
 
 
-@adm_r.message(Command('rpanel'), RootProtect())
+@adm_r.message(Command('my'), RootProtect())
 async def get_panel(message: Message) -> None:
     """
     func for call root panel
     """
     text_for_message = (f'Ты вызвал панель владельца\n\n'
-                        f'Твой ID: {message.from_user.id}\n'
-                        f'ID чата: {message.chat.id}')
+                        f'Твой ID: <code>{message.from_user.id}</code>\n'
+                        f'ID чата: <code>{message.chat.id}</code>')
     await message.answer(text_for_message, reply_markup=rpanel)
 
 
@@ -403,6 +404,18 @@ async def save_prj(callback: CallbackQuery, state: FSMContext):
 async def create_prj_through_button(callback: CallbackQuery, state: FSMContext):
     await callback.answer('Создаем проект')
     await create_project(message=callback.message, state=state)
+
+
+@adm_r.callback_query(F.data == 'send_msg_fchats', RootProtect())
+async def create_prj_through_button(callback: CallbackQuery, state: FSMContext):
+    await callback.answer('В процессе... ')
+    await sendchats(message=callback.message, state=state)
+
+
+@adm_r.callback_query(F.data == 'user_profile', RootProtect())
+async def admin_call_user_profile(callback: CallbackQuery):
+    await callback.answer('В процессе... ')
+    await get_user_profile(message=callback.message)
 
 
 @adm_r.message(Command('help'), RootProtect())

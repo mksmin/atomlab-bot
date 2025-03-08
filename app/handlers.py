@@ -4,13 +4,15 @@ import random
 from aiogram import Router, F
 from aiogram.filters import Command, CommandStart, CommandObject, ChatMemberUpdatedFilter, \
     KICKED, LEFT, MEMBER, RESTRICTED
-from aiogram.types import Message, ChatMemberUpdated
+from aiogram.types import Message, ChatMemberUpdated, CallbackQuery
+from aiogram.fsm.context import FSMContext
 
 # import from modules
 import app.database.request as rq
 from app.messages import msg_texts
 from app.middlewares import ChatType
 from config import get_id_chat_root, logger
+from app.keyboards import keyboard_user_profile, to_support_key
 
 router = Router()  # main handler
 
@@ -164,12 +166,34 @@ async def add_rep_to_user(message: Message) -> None:
 # /-- karma end --/
 
 @router.message(Command('myid'), ChatType(chat_type='private'))
-async def get_panel(message: Message) -> None:
+async def get_user_id(message: Message) -> None:
     """
     Функция для получения пользователем своего тг-id
     """
-    text_for_message = f'Твой id в телеграме: {message.from_user.id}'
+    text_for_message = f'Твой id в телеграме: <code>{message.from_user.id}</code>'
     await message.reply(text_for_message)
+
+
+@router.message(Command('my'), ChatType(chat_type='private'))
+async def get_user_profile(message: Message) -> None:
+    """
+    Вызов профиля пользователя
+    """
+    text_for_message = f'Привет, {message.from_user.first_name}!'
+    await message.answer(text_for_message, reply_markup=keyboard_user_profile)
+
+
+@router.callback_query(F.data == 'user_help')
+async def create_prj_through_button(callback: CallbackQuery, state: FSMContext):
+    await callback.answer('Помощь')
+    text = msg_texts.text_for_help_user
+    await callback.message.answer(text, reply_markup=to_support_key)
+
+
+@router.callback_query(F.data == 'user_tg_id')
+async def create_prj_through_button(callback: CallbackQuery, state: FSMContext):
+    await callback.answer('В процессе... ')
+    await get_user_id(message=callback.message)
 
 
 @router.message(ChatType(chat_type='private'))
