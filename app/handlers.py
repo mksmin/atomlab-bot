@@ -166,20 +166,30 @@ async def add_rep_to_user(message: Message) -> None:
 # /-- karma end --/
 
 @router.message(Command('myid'), ChatType(chat_type='private'))
-async def get_user_id(message: Message) -> None:
+async def get_user_id(message: Message | CallbackQuery) -> None:
     """
     Функция для получения пользователем своего тг-id
     """
     text_for_message = f'Твой id в телеграме: <code>{message.from_user.id}</code>'
+
+    if isinstance(message, CallbackQuery):
+        text_for_message = f'Твой id в телеграме: <code>{message.from_user.id}</code>'
+        message = message.message
+
     await message.reply(text_for_message)
 
 
 @router.message(Command('my'), ChatType(chat_type='private'))
-async def get_user_profile(message: Message) -> None:
+async def get_user_profile(message: Message | CallbackQuery) -> None:
     """
     Вызов профиля пользователя
     """
     text_for_message = f'Привет, {message.from_user.first_name}!'
+
+    if isinstance(message, CallbackQuery):
+        text_for_message = f'Привет, {message.from_user.first_name}!'
+        message = message.message
+
     await message.answer(text_for_message, reply_markup=keyboard_user_profile)
 
 
@@ -193,7 +203,7 @@ async def create_prj_through_button(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == 'user_tg_id')
 async def create_prj_through_button(callback: CallbackQuery, state: FSMContext):
     await callback.answer('В процессе... ')
-    await get_user_id(message=callback.message)
+    await get_user_id(message=callback)
 
 
 @router.message(ChatType(chat_type='private'))

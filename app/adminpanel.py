@@ -80,8 +80,12 @@ async def bot_added_as_admin(update: ChatMemberUpdated):
 # Умеет отлавливать фото с тектом или только текст (форматированный)
 # Не умеет работать с остальным контентом
 @adm_r.message(Command('send'), RootProtect(), ChatType(chat_type='private'))
-async def sendchats(message: Message, state: FSMContext):
+async def sendchats(message: Message | CallbackQuery, state: FSMContext):
     await state.set_state(st.Send.sendmess)  # Состояние ожидания сообщения
+
+    if isinstance(message, CallbackQuery):
+        message = message.message
+
     await message.answer(text=mt.start_message_for_func_sendchats)
 
 
@@ -409,13 +413,13 @@ async def create_prj_through_button(callback: CallbackQuery, state: FSMContext):
 @adm_r.callback_query(F.data == 'send_msg_fchats', RootProtect())
 async def create_prj_through_button(callback: CallbackQuery, state: FSMContext):
     await callback.answer('В процессе... ')
-    await sendchats(message=callback.message, state=state)
+    await sendchats(message=callback, state=state)
 
 
 @adm_r.callback_query(F.data == 'user_profile', RootProtect())
 async def admin_call_user_profile(callback: CallbackQuery):
     await callback.answer('В процессе... ')
-    await get_user_profile(message=callback.message)
+    await get_user_profile(message=callback)
 
 
 @adm_r.message(Command('help'), RootProtect())
