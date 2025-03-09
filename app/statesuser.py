@@ -18,3 +18,8 @@ class ProjectState(StatesGroup):
     last_message_id = State()
     save_prj = State()
     cancel_prj = State()
+
+
+class DeleteEntry(StatesGroup):
+    object_number = State()
+    last_message_id = State()

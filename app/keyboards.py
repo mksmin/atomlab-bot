@@ -37,3 +37,13 @@ keyboard_user_profile = InlineKeyboardMarkup(inline_keyboard=[
 to_support_key = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='Задать вопрос', url="tg://resolve?domain=atomlab_help")],
 ])
+
+manage_projects = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='Переключиться на проект', callback_data='checkout_project'),
+     InlineKeyboardButton(text='Удалить проект', callback_data='delete_project')],
+])
+
+confirm_deletion = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='Удалить проект', callback_data='confirm_delete'),
+     InlineKeyboardButton(text='Отменить удаление', callback_data='cancel_delete')],
+])

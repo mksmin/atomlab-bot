@@ -35,7 +35,19 @@ class TimestampsMixin:
     deleted_at: Mapped[datetime] = mapped_column(default=None, server_default=None, nullable=True)
 
 
-class User(TimestampsMixin, Base):
+class SearchableMixin:
+    @classmethod
+    def get_search_attribute(cls):
+        """Возвращает атрибут, по которому выполняется поиск (по умолчанию `id`)."""
+        return cls.id  # или другой атрибут по умолчанию
+
+    @classmethod
+    def get_search_attribute_name(cls):
+        """Возвращает имя атрибута для поиска (опционально)."""
+        return "id"
+
+
+class User(SearchableMixin, TimestampsMixin, Base):
     """
     Table with data of users
     """
@@ -55,6 +67,14 @@ class User(TimestampsMixin, Base):
     def add_karma_value(self):
         self.total_karma += 1
 
+    @classmethod
+    def get_search_attribute(cls):
+        return cls.tg_id
+
+    @classmethod
+    def get_search_attribute_name(cls):
+        return "tg_id"
+
 
 class Chat(Base):
     """
@@ -67,7 +87,7 @@ class Chat(Base):
     chat_title: Mapped[str] = mapped_column(String(120), nullable=True, default='null')
 
 
-class ChatUsers(TimestampsMixin, Base):
+class ChatUsers(SearchableMixin, TimestampsMixin, Base):
     """
     A table linking the chats and the users who joined them
     """
@@ -77,8 +97,16 @@ class ChatUsers(TimestampsMixin, Base):
     tg_id = mapped_column(BigInteger, ForeignKey('users.tg_id'), nullable=False)
     chat_id = mapped_column(BigInteger, ForeignKey('chats.chat_id'), nullable=False)
 
+    @classmethod
+    def get_search_attribute(cls):
+        return cls.tg_id
 
-class Project(TimestampsMixin, Base):
+    @classmethod
+    def get_search_attribute_name(cls):
+        return "tg_id"
+
+
+class Project(SearchableMixin, TimestampsMixin, Base):
     __tablename__ = 'projects'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -86,3 +114,11 @@ class Project(TimestampsMixin, Base):
     prj_name: Mapped[str] = mapped_column(String(50), nullable=True)
     prj_description: Mapped[str] = mapped_column(String(200), nullable=True)
     prj_owner = mapped_column(BigInteger, ForeignKey('users.tg_id'), nullable=False)
+
+    @classmethod
+    def get_search_attribute(cls):
+        return cls.prj_name
+
+    @classmethod
+    def get_search_attribute_name(cls):
+        return "prj_name"

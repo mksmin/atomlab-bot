@@ -3,13 +3,14 @@ Module with functions for requesting data from database
 """
 
 # import from
+from datetime import datetime
 from functools import wraps
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
 
 # import from modules
-from app.database.models import async_session, ChatUsers, Chat, User, Project
+from app.database.models import async_session, Base, ChatUsers, Chat, User, Project, TimestampsMixin
 from config import logger
 
 
@@ -232,6 +233,25 @@ async def create_project_of_user(session: async_session, project: Project) -> bo
 
 
 @connection
-async def get_list_of_projects(session: async_session, tg_user_id: int) -> list[Project]:
-    list_of_chats = await session.execute(select(Project).where(Project.prj_owner == tg_user_id))
+async def get_list_of_projects(session: async_session, tg_user_id: int) -> list[set[Project]]:
+    list_of_chats = await session.execute(select(Project).where(Project.prj_owner == tg_user_id,
+                                                                Project.deleted_at.is_(None)))
+
     return list_of_chats
+
+
+@connection
+async def delete_entry(session: async_session, obj: Base):
+    if not isinstance(obj, TimestampsMixin):
+        raise TypeError(f'Object {obj} is not of type {TimestampsMixin}')
+
+    class_object = type(obj)
+    search_attr = class_object.get_search_attribute()
+    search_value = getattr(obj, class_object.get_search_attribute_name())
+
+    entry_looking_for = await session.scalar(select(class_object).where(search_attr == search_value))
+
+    if entry_looking_for:
+        entry_looking_for.deleted_at = datetime.utcnow()
+        session.add(entry_looking_for)
+        await session.commit()
