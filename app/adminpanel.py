@@ -212,7 +212,7 @@ async def create_message_for_statistics(server_response: str) -> str:
 
 
 @adm_r.message(Command('getstat'), RootProtect())
-async def get_statistic(message: Message):
+async def get_statistic(message: Message | CallbackQuery):
     user_id = message.from_user.id
 
     path_dir = os.path.dirname(os.path.abspath(__file__))
@@ -231,6 +231,8 @@ async def get_statistic(message: Message):
             message_to_write = {"User": user_id, "Token": token}
             json.dump(message_to_write, f)
 
+    message = message.message if isinstance(message, CallbackQuery) else message
+
     with open(path_file, 'r') as f:
         data = json.load(f)
         token = data['Token']
@@ -240,7 +242,10 @@ async def get_statistic(message: Message):
 
 
 @adm_r.message(Command('setadmin'), RootProtect(), ChatType(chat_type='private'))
-async def set_admin(message: Message, state: FSMContext):
+async def set_admin(message: Message | CallbackQuery, state: FSMContext):
+
+    message = message.message if isinstance(message, CallbackQuery) else message
+
     await state.set_state(st.Admins.admins)
     await message.answer('Пришли id пользователя, которого хочешь назначить администратором')
 
@@ -316,6 +321,11 @@ async def delete_keyboard_from_message(message: Message, state: FSMContext):
             )
         except Exception as e:
             logger.warning(f"Ошибка при редактировании кнопок: {e}")
+
+
+@adm_r.message(Command('help'), RootProtect())
+async def help_for_admin(message: Message):
+    await message.answer(text=mt.text_for_help_admin)
 
 
 @adm_r.message(Command('create'), RootProtect(), ChatType(chat_type='private'))
@@ -422,6 +432,13 @@ async def admin_call_user_profile(callback: CallbackQuery):
     await get_user_profile(message=callback)
 
 
-@adm_r.message(Command('help'), RootProtect())
-async def help_for_admin(message: Message):
-    await message.answer(text=mt.text_for_help_admin)
+@adm_r.callback_query(F.data == 'set_user_to_admin', RootProtect())
+async def admin_call_user_profile(callback: CallbackQuery, state: FSMContext):
+    await callback.answer('В процессе... ')
+    await set_admin(message=callback, state=state)
+
+
+@adm_r.callback_query(F.data == 'get_statistics', RootProtect())
+async def admin_call_user_profile(callback: CallbackQuery):
+    await callback.answer('В процессе... ')
+    await get_statistic(message=callback)

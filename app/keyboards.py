@@ -21,13 +21,15 @@ cancel_key_prj = InlineKeyboardMarkup(inline_keyboard=[
 rpanel = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='Мои проекты', callback_data='myprojects'),
      InlineKeyboardButton(text='Создать проект', callback_data='create_prj')],
-    [InlineKeyboardButton(text='Сообщение в чаты', callback_data='send_msg_fchats')],
-    [InlineKeyboardButton(text='Профиль пользователя', callback_data='user_profile')],
+    [InlineKeyboardButton(text='Сообщение в чаты', callback_data='send_msg_fchats'),
+     InlineKeyboardButton(text='👮‍♂️ Назначить админа', callback_data='set_user_to_admin')],
+    [InlineKeyboardButton(text='📜 Статистика регистраций', callback_data='get_statistics')],
+    [InlineKeyboardButton(text='🪪 Профиль пользователя', callback_data='user_profile')],
 ])
 
 keyboard_user_profile = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text='Помощь', callback_data='user_help')],
-    [InlineKeyboardButton(text='Задать вопрос', url="tg://resolve?domain=atomlab_help")],
+    [InlineKeyboardButton(text='Помощь', callback_data='user_help'),
+     InlineKeyboardButton(text='Задать вопрос', url="tg://resolve?domain=atomlab_help")],
     [InlineKeyboardButton(text='Мой id', callback_data='user_tg_id')],
 
 ])
