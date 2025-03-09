@@ -14,7 +14,7 @@ import app.database.request as rq
 import app.statesuser as st
 from app.database import User, Project
 from app.keyboards import keyboard_send_mess, cancel_key_prj, keys_for_create_project, rpanel, manage_projects, \
-    confirm_deletion
+    confirm_deletion, return_to_profile
 from app.middlewares import ChatType, RootProtect
 from config.config import get_id_chat_root, logger
 from app.messages import msg_texts as mt
@@ -425,7 +425,7 @@ async def save_prj(callback: CallbackQuery, state: FSMContext):
 
     else:
         msg_text = 'У тебя нет проектов'
-        inline_buttons = None
+        inline_buttons = return_to_profile
 
     await callback.message.edit_text(text=msg_text, reply_markup=inline_buttons)
 

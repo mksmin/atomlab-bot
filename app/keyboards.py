@@ -48,3 +48,7 @@ confirm_deletion = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='Удалить проект', callback_data='confirm_delete'),
      InlineKeyboardButton(text='Отменить удаление', callback_data='cancel_delete')],
 ])
+
+return_to_profile = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='Вернуться в профиль', callback_data='my_profile')]
+])
