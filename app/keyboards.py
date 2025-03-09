@@ -41,6 +41,7 @@ to_support_key = InlineKeyboardMarkup(inline_keyboard=[
 manage_projects = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='Переключиться на проект', callback_data='checkout_project'),
      InlineKeyboardButton(text='Удалить проект', callback_data='delete_project')],
+    [InlineKeyboardButton(text='Вернуться в профиль', callback_data='my_profile')]
 ])
 
 confirm_deletion = InlineKeyboardMarkup(inline_keyboard=[

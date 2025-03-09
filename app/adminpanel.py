@@ -25,13 +25,27 @@ adm_r.my_chat_member.filter(F.chat.type.in_({'group', 'supergroup'}))
 
 
 @adm_r.message(Command('my'), RootProtect())
-async def get_panel(message: Message) -> None:
+@adm_r.callback_query(F.data == 'my_profile', RootProtect())
+async def get_panel(message: Message | CallbackQuery) -> None:
     """
     func for call root panel
     """
+
+    if isinstance(message, CallbackQuery):
+        await message.answer('Назад в профиль')
+
+        message = message.message
+        text_for_message = (f'Ты вызвал панель владельца\n\n'
+                            f'Твой ID: <code>{message.from_user.id}</code>\n'
+                            f'ID чата: <code>{message.chat.id}</code>')
+
+        await message.edit_text(text_for_message, reply_markup=rpanel)
+        return
+
     text_for_message = (f'Ты вызвал панель владельца\n\n'
                         f'Твой ID: <code>{message.from_user.id}</code>\n'
                         f'ID чата: <code>{message.chat.id}</code>')
+
     await message.answer(text_for_message, reply_markup=rpanel)
 
 
@@ -399,7 +413,6 @@ async def save_prj(callback: CallbackQuery, state: FSMContext):
 @adm_r.callback_query(F.data == 'myprojects', RootProtect())
 async def save_prj(callback: CallbackQuery, state: FSMContext):
     await callback.answer('Вызов списка проектов')
-
     list_projects_objects = await rq.get_list_of_projects(tg_user_id=callback.from_user.id)
     data_list = [result[0].prj_name for result in list_projects_objects]
 
@@ -414,7 +427,7 @@ async def save_prj(callback: CallbackQuery, state: FSMContext):
         msg_text = 'У тебя нет проектов'
         inline_buttons = None
 
-    await callback.message.answer(text=msg_text, reply_markup=inline_buttons)
+    await callback.message.edit_text(text=msg_text, reply_markup=inline_buttons)
 
 
 @adm_r.callback_query(F.data == 'create_prj', RootProtect())
