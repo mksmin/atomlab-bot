@@ -32,6 +32,7 @@ class Base(AsyncAttrs, DeclarativeBase):
 
 class TimestampsMixin:
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, nullable=True)
+    deleted_at: Mapped[datetime] = mapped_column(default=None, server_default=None, nullable=True)
 
 
 class User(TimestampsMixin, Base):
