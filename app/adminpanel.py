@@ -34,12 +34,14 @@ async def get_panel(message: Message | CallbackQuery) -> None:
     if isinstance(message, CallbackQuery):
         await message.answer('Назад в профиль')
 
-        message = message.message
-        text_for_message = (f'Ты вызвал панель владельца\n\n'
-                            f'Твой ID: <code>{message.from_user.id}</code>\n'
-                            f'ID чата: <code>{message.chat.id}</code>')
+        user_id = message.from_user.id
+        chat_id = message.message.chat.id
 
-        await message.edit_text(text_for_message, reply_markup=rpanel)
+        text_for_message = (f'Ты вызвал панель владельца\n\n'
+                            f'Твой ID: <code>{user_id}</code>\n'
+                            f'ID чата: <code>{chat_id}</code>')
+
+        await message.message.edit_text(text_for_message, reply_markup=rpanel)
         return
 
     text_for_message = (f'Ты вызвал панель владельца\n\n'
@@ -524,6 +526,7 @@ async def admin_cancel_delete(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(f'Ты решил не удалять проект', reply_markup=None)
     await state.clear()
     return
+
 
 @adm_r.callback_query(F.data == 'checkout_project', RootProtect())
 async def admin_cancel_delete(callback: CallbackQuery, state: FSMContext):

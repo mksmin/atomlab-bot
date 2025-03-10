@@ -91,9 +91,13 @@ async def set_user(session: async_session, tg_id, username: str = 'Null') -> Non
 
     if not user:
         session.add(User(tg_id=tg_id, tg_username=username))
-        await session.commit()  # save info
+        await session.commit()  # save
+        logger.info(f'The user {username} {tg_id} has been saved')
 
-    logger.info(f'The user {username} {tg_id} has been saved')
+    if user.tg_username != username:
+        user.tg_username = username
+        await session.commit()  # save
+        logger.info(f'The user {username} {tg_id} has been changed')
 
 
 @connection
