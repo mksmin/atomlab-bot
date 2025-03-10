@@ -9,7 +9,7 @@ import uuid
 # import from libraries
 from datetime import datetime
 from sqlalchemy import BigInteger, ForeignKey, String, Integer
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -85,6 +85,9 @@ class Chat(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     chat_id = mapped_column(BigInteger, nullable=False, unique=True)
     chat_title: Mapped[str] = mapped_column(String(120), nullable=True, default='null')
+    project_id = mapped_column(UUID(as_uuid=True), ForeignKey('projects.uuid'), nullable=True, unique=False)
+
+    prj = relationship('Project', back_populates='chat', uselist=False)
 
 
 class ChatUsers(SearchableMixin, TimestampsMixin, Base):
@@ -110,10 +113,12 @@ class Project(SearchableMixin, TimestampsMixin, Base):
     __tablename__ = 'projects'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    uuid = mapped_column(UUID(as_uuid=True), nullable=False, default=uuid.uuid4)
+    uuid = mapped_column(UUID(as_uuid=True), nullable=False, default=uuid.uuid4, unique=True)
     prj_name: Mapped[str] = mapped_column(String(50), nullable=True)
     prj_description: Mapped[str] = mapped_column(String(200), nullable=True)
     prj_owner = mapped_column(BigInteger, ForeignKey('users.tg_id'), nullable=False)
+
+    chat = relationship('Chat', back_populates='prj')
 
     @classmethod
     def get_search_attribute(cls):
