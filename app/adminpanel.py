@@ -358,6 +358,10 @@ async def create_project(message: Message, state: FSMContext):
 async def save_name_of_project(message: Message, state: FSMContext):
     await delete_keyboard_from_message(message, state)
 
+    if len(message.text) > 50:
+        await message.answer(f'Ошибка. Длина названия должна быть не больше 50 символов. Попробуй еще раз')
+        return
+
     await state.update_data(prj_name=message.text, prj_owner=message.from_user.id)
     await state.set_state(st.ProjectState.prj_description)
 
@@ -371,18 +375,23 @@ async def save_name_of_project(message: Message, state: FSMContext):
 async def save_description_of_project(message: Message, state: FSMContext):
     await delete_keyboard_from_message(message, state)
 
-    await state.update_data(prj_description=message.text)
-    await message.answer(mt.succes_create_project)
-    data = await state.get_data()
+    if len(message.text) > 200:
+        await message.answer(f'Ошибка. Описание проекта должно быть не больше 200 символов. Попробуй еще раз')
+        return
 
+    await state.update_data(prj_description=message.text)
+    data = await state.get_data()
     user_project = Project(
         prj_name=data['prj_name'],
         prj_description=data['prj_description']
     )
-    await message.answer(
-        text=f'<b>Название проекта: </b>\n{user_project.prj_name}\n\n'
-             f'<b>Описание проекта: </b>\n{user_project.prj_description}\n\n'
+
+    successfull_text = (
+        f'{mt.success_create_project}\n\n'
+        f'<b>Название проекта: </b>\n{user_project.prj_name}\n\n'
+        f'<b>Описание проекта: </b>\n{user_project.prj_description}\n\n'
     )
+    await message.answer(successfull_text)
     await message.answer('Сохранить проект?', reply_markup=keys_for_create_project)
 
 
@@ -528,7 +537,7 @@ async def admin_cancel_delete(callback: CallbackQuery, state: FSMContext):
     return
 
 
-@adm_r.callback_query(F.data == 'checkout_project', RootProtect())
+@adm_r.callback_query(F.data == 'switch_project', RootProtect())
 async def admin_cancel_delete(callback: CallbackQuery, state: FSMContext):
     await callback.answer(f'Пока ничего нет')
     await state.clear()
