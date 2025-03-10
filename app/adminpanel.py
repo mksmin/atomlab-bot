@@ -12,20 +12,20 @@ from aiogram.fsm.context import FSMContext
 # import functions from my modules
 import app.database.request as rq
 import app.statesuser as st
+import app.keyboards as kb
+
 from app.database import User, Project
-from app.keyboards import keyboard_send_mess, cancel_key_prj, keys_for_create_project, rpanel, manage_projects, \
-    confirm_deletion, return_to_profile
 from app.middlewares import ChatType, RootProtect
 from config.config import get_id_chat_root, logger
 from app.messages import msg_texts as mt
 from app.handlers import get_user_profile
 
-adm_r = Router()  # main handler
-adm_r.my_chat_member.filter(F.chat.type.in_({'group', 'supergroup'}))
+ownrouter = Router()  # main handler
+ownrouter.my_chat_member.filter(F.chat.type.in_({'group', 'supergroup'}))
 
 
-@adm_r.message(Command('my'), RootProtect())
-@adm_r.callback_query(F.data == 'my_profile', RootProtect())
+@ownrouter.message(Command('my'), RootProtect())
+@ownrouter.callback_query(F.data == 'my_profile', RootProtect())
 async def get_panel(message: Message | CallbackQuery) -> None:
     """
     func for call root panel
@@ -41,17 +41,17 @@ async def get_panel(message: Message | CallbackQuery) -> None:
                             f'Твой ID: <code>{user_id}</code>\n'
                             f'ID чата: <code>{chat_id}</code>')
 
-        await message.message.edit_text(text_for_message, reply_markup=rpanel)
+        await message.message.edit_text(text_for_message, reply_markup=kb.rpanel)
         return
 
     text_for_message = (f'Ты вызвал панель владельца\n\n'
                         f'Твой ID: <code>{message.from_user.id}</code>\n'
                         f'ID чата: <code>{message.chat.id}</code>')
 
-    await message.answer(text_for_message, reply_markup=rpanel)
+    await message.answer(text_for_message, reply_markup=kb.rpanel)
 
 
-@adm_r.message(Command('chatid'), RootProtect())
+@ownrouter.message(Command('chatid'), RootProtect())
 async def get_chat_id(message: Message) -> None:
     """
     func get chatid of where root-user used the command
@@ -65,7 +65,7 @@ async def get_chat_id(message: Message) -> None:
 
 
 # manual register chat by root-user
-@adm_r.message(Command('addchat'), RootProtect())
+@ownrouter.message(Command('addchat'), RootProtect())
 async def register_chat_to_db(message: Message) -> None:
     chat_id = message.chat.id
     chat_title = message.chat.title
@@ -73,7 +73,7 @@ async def register_chat_to_db(message: Message) -> None:
 
 
 # Регистрируем чат в БД после добавления бота администратором
-@adm_r.my_chat_member(
+@ownrouter.my_chat_member(
     ChatMemberUpdatedFilter(
         member_status_changed=(IS_NOT_MEMBER | IS_MEMBER) >> ADMINISTRATOR
     )
@@ -96,7 +96,7 @@ async def bot_added_as_admin(update: ChatMemberUpdated):
 # Функция отправки сообщения во все чаты
 # Умеет отлавливать фото с тектом или только текст (форматированный)
 # Не умеет работать с остальным контентом
-@adm_r.message(Command('send'), RootProtect(), ChatType(chat_type='private'))
+@ownrouter.message(Command('send'), RootProtect(), ChatType(chat_type='private'))
 async def sendchats(message: Message | CallbackQuery, state: FSMContext):
     await state.set_state(st.Send.sendmess)  # Состояние ожидания сообщения
 
@@ -106,7 +106,7 @@ async def sendchats(message: Message | CallbackQuery, state: FSMContext):
     await message.answer(text=mt.start_message_for_func_sendchats)
 
 
-@adm_r.message(st.Send.sendmess, RootProtect(), ChatType(chat_type='private'))
+@ownrouter.message(st.Send.sendmess, RootProtect(), ChatType(chat_type='private'))
 async def confirm(message: Message, state: FSMContext):
     await state.update_data(sendmess=message.html_text)
 
@@ -127,10 +127,10 @@ async def confirm(message: Message, state: FSMContext):
     else:
         await message.answer(text=data['sendmess'])
 
-    await message.answer('Отправляем?', reply_markup=keyboard_send_mess)
+    await message.answer('Отправляем?', reply_markup=kb.keyboard_send_mess)
 
 
-@adm_r.callback_query(F.data == 'send', RootProtect())
+@ownrouter.callback_query(F.data == 'send', RootProtect())
 async def send_message(callback: CallbackQuery, state: FSMContext):
     message = callback.bot
     error_msg = []
@@ -163,7 +163,7 @@ async def send_message(callback: CallbackQuery, state: FSMContext):
     await state.clear()
 
 
-@adm_r.callback_query(F.data == 'cancel', RootProtect())
+@ownrouter.callback_query(F.data == 'cancel', RootProtect())
 async def cancel_send(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text('Ты решил не отправлять сообщение', reply_markup=None)
     await callback.answer('Операция отменена')
@@ -228,7 +228,7 @@ async def create_message_for_statistics(server_response: str) -> str:
     return message_to_return
 
 
-@adm_r.message(Command('getstat'), RootProtect())
+@ownrouter.message(Command('getstat'), RootProtect())
 async def get_statistic(message: Message | CallbackQuery):
     user_id = message.from_user.id
 
@@ -258,7 +258,7 @@ async def get_statistic(message: Message | CallbackQuery):
         await message.answer(message_to_send)
 
 
-@adm_r.message(Command('setadmin'), RootProtect(), ChatType(chat_type='private'))
+@ownrouter.message(Command('setadmin'), RootProtect(), ChatType(chat_type='private'))
 async def set_admin(message: Message | CallbackQuery, state: FSMContext):
     message = message.message if isinstance(message, CallbackQuery) else message
 
@@ -266,7 +266,7 @@ async def set_admin(message: Message | CallbackQuery, state: FSMContext):
     await message.answer('Пришли id пользователя, которого хочешь назначить администратором')
 
 
-@adm_r.message(st.Admins.admins, RootProtect(), ChatType(chat_type='private'))
+@ownrouter.message(st.Admins.admins, RootProtect(), ChatType(chat_type='private'))
 async def set_admins(message: Message, state: FSMContext):
     type_of_errors = {
         'Telegram server says - Bad Request: not enough rights': 'Недостаточно прав',
@@ -339,22 +339,22 @@ async def delete_keyboard_from_message(message: Message, state: FSMContext):
             logger.warning(f"Ошибка при редактировании кнопок: {e}")
 
 
-@adm_r.message(Command('help'), RootProtect())
+@ownrouter.message(Command('help'), RootProtect())
 async def help_for_admin(message: Message):
     await message.answer(text=mt.text_for_help_admin)
 
 
-@adm_r.message(Command('create'), RootProtect(), ChatType(chat_type='private'))
+@ownrouter.message(Command('create'), RootProtect(), ChatType(chat_type='private'))
 async def create_project(message: Message, state: FSMContext):
     await state.set_state(st.ProjectState.prj_name)
 
-    sent_message = await message.answer(mt.create_project, reply_markup=cancel_key_prj)
+    sent_message = await message.answer(mt.create_project, reply_markup=kb.cancel_key_prj)
     await state.update_data(last_message_id=sent_message.message_id)
 
 
-@adm_r.message(st.ProjectState.prj_name,
-               RootProtect(),
-               ChatType(chat_type='private'))
+@ownrouter.message(st.ProjectState.prj_name,
+                   RootProtect(),
+                   ChatType(chat_type='private'))
 async def save_name_of_project(message: Message, state: FSMContext):
     await delete_keyboard_from_message(message, state)
 
@@ -365,13 +365,13 @@ async def save_name_of_project(message: Message, state: FSMContext):
     await state.update_data(prj_name=message.text, prj_owner=message.from_user.id)
     await state.set_state(st.ProjectState.prj_description)
 
-    sent_message = await message.answer(mt.create_description_of_project, reply_markup=cancel_key_prj)
+    sent_message = await message.answer(mt.create_description_of_project, reply_markup=kb.cancel_key_prj)
     await state.update_data(last_message_id=sent_message.message_id)
 
 
-@adm_r.message(st.ProjectState.prj_description,
-               RootProtect(),
-               ChatType(chat_type='private'))
+@ownrouter.message(st.ProjectState.prj_description,
+                   RootProtect(),
+                   ChatType(chat_type='private'))
 async def save_description_of_project(message: Message, state: FSMContext):
     await delete_keyboard_from_message(message, state)
 
@@ -392,17 +392,17 @@ async def save_description_of_project(message: Message, state: FSMContext):
         f'<b>Описание проекта: </b>\n{user_project.prj_description}\n\n'
     )
     await message.answer(successfull_text)
-    await message.answer('Сохранить проект?', reply_markup=keys_for_create_project)
+    await message.answer('Сохранить проект?', reply_markup=kb.keys_for_create_project)
 
 
-@adm_r.callback_query(F.data == 'cancel_prj', RootProtect())
+@ownrouter.callback_query(F.data == 'cancel_prj', RootProtect())
 async def cancel_prj(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text('Ты решил не сохранять проект', reply_markup=None)
     await callback.answer('Операция отменена')
     await state.clear()
 
 
-@adm_r.callback_query(F.data == 'save_prj', RootProtect())
+@ownrouter.callback_query(F.data == 'save_prj', RootProtect())
 async def save_prj(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     user_project = Project(
@@ -421,7 +421,7 @@ async def save_prj(callback: CallbackQuery, state: FSMContext):
         await state.clear()
 
 
-@adm_r.callback_query(F.data == 'myprojects', RootProtect())
+@ownrouter.callback_query(F.data == 'myprojects', RootProtect())
 async def save_prj(callback: CallbackQuery, state: FSMContext):
     await callback.answer('Вызов списка проектов')
     list_projects_objects = await rq.get_list_of_projects(tg_user_id=callback.from_user.id)
@@ -432,56 +432,56 @@ async def save_prj(callback: CallbackQuery, state: FSMContext):
 
         msg_text = (f'Вот твои проекты:\n'
                     f'{list_of_names}')
-        inline_buttons = manage_projects
+        inline_buttons = kb.manage_projects
 
     else:
         msg_text = 'У тебя нет проектов'
-        inline_buttons = return_to_profile
+        inline_buttons = kb.return_to_profile
 
     await callback.message.edit_text(text=msg_text, reply_markup=inline_buttons)
 
 
-@adm_r.callback_query(F.data == 'create_prj', RootProtect())
+@ownrouter.callback_query(F.data == 'create_prj', RootProtect())
 async def create_prj_through_button(callback: CallbackQuery, state: FSMContext):
     await callback.answer('Создаем проект')
     await create_project(message=callback.message, state=state)
 
 
-@adm_r.callback_query(F.data == 'send_msg_fchats', RootProtect())
+@ownrouter.callback_query(F.data == 'send_msg_fchats', RootProtect())
 async def create_prj_through_button(callback: CallbackQuery, state: FSMContext):
     await callback.answer('В процессе... ')
     await sendchats(message=callback, state=state)
 
 
-@adm_r.callback_query(F.data == 'user_profile', RootProtect())
+@ownrouter.callback_query(F.data == 'user_profile', RootProtect())
 async def admin_call_user_profile(callback: CallbackQuery):
     await callback.answer('В процессе... ')
     await get_user_profile(message=callback)
 
 
-@adm_r.callback_query(F.data == 'set_user_to_admin', RootProtect())
+@ownrouter.callback_query(F.data == 'set_user_to_admin', RootProtect())
 async def admin_call_user_profile(callback: CallbackQuery, state: FSMContext):
     await callback.answer('В процессе... ')
     await set_admin(message=callback, state=state)
 
 
-@adm_r.callback_query(F.data == 'get_statistics', RootProtect())
+@ownrouter.callback_query(F.data == 'get_statistics', RootProtect())
 async def admin_call_user_profile(callback: CallbackQuery):
     await callback.answer('В процессе... ')
     await get_statistic(message=callback)
 
 
-@adm_r.callback_query(F.data == 'delete_project', RootProtect())
+@ownrouter.callback_query(F.data == 'delete_project', RootProtect())
 async def admin_init_remove_project(callback: CallbackQuery, state: FSMContext):
     await callback.answer('Будем удалять проект')
     await state.set_state(st.DeleteEntry.object_number)
     await callback.message.answer(f'Пришли номер проекта, который хочешь удалить')
 
 
-@adm_r.message(F.text.regexp(r"^\d+$"),
-               st.DeleteEntry.object_number,
-               ChatType(chat_type='private'),
-               RootProtect())
+@ownrouter.message(F.text.regexp(r"^\d+$"),
+                   st.DeleteEntry.object_number,
+                   ChatType(chat_type='private'),
+                   RootProtect())
 async def get_number_of_project(message: Message, state: FSMContext):
     list_projects_objects = await rq.get_list_of_projects(tg_user_id=message.from_user.id)
     data_list = [result[0] for result in list_projects_objects]
@@ -500,11 +500,11 @@ async def get_number_of_project(message: Message, state: FSMContext):
     project_to_delete: Project = data_list[index_looking_for]
 
     sent_message = await message.answer(f'Подтвердить удаление проекта <b>{project_to_delete.prj_name}?</b>',
-                                        reply_markup=confirm_deletion)
+                                        reply_markup=kb.confirm_deletion)
     await state.update_data(object_number=project_to_delete, last_message_id=sent_message.message_id)
 
 
-@adm_r.callback_query(F.data == 'confirm_delete', RootProtect())
+@ownrouter.callback_query(F.data == 'confirm_delete', RootProtect())
 async def admin_confirm_delete_prj(callback: CallbackQuery, state: FSMContext):
     # Получаю конкретный объект класса Project для удаления
     data = await state.get_data()
@@ -524,12 +524,12 @@ async def admin_confirm_delete_prj(callback: CallbackQuery, state: FSMContext):
         return
 
 
-@adm_r.message(st.DeleteEntry.object_number, RootProtect(), ChatType(chat_type='private'))
+@ownrouter.message(st.DeleteEntry.object_number, RootProtect(), ChatType(chat_type='private'))
 async def get_nuber_of_project(message: Message):
     await message.answer(f'Ты прислал не число')
 
 
-@adm_r.callback_query(F.data == 'cancel_delete', RootProtect())
+@ownrouter.callback_query(F.data == 'cancel_delete', RootProtect())
 async def admin_cancel_delete(callback: CallbackQuery, state: FSMContext):
     await callback.answer(f'Операция отменена')
     await callback.message.edit_text(f'Ты решил не удалять проект', reply_markup=None)
@@ -537,7 +537,7 @@ async def admin_cancel_delete(callback: CallbackQuery, state: FSMContext):
     return
 
 
-@adm_r.callback_query(F.data == 'switch_project', RootProtect())
+@ownrouter.callback_query(F.data == 'switch_project', RootProtect())
 async def admin_cancel_delete(callback: CallbackQuery, state: FSMContext):
     await callback.answer(f'Пока ничего нет')
     await state.clear()
