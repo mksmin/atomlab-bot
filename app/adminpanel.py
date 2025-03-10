@@ -18,7 +18,7 @@ import app.database.request as rq
 import app.keyboards as kb
 import app.statesuser as st
 
-from app.database import User, Project
+from app.database import Project
 from app.messages import msg_texts as mt
 from app.middlewares import ChatType, RootProtect
 from app.handlers import get_user_profile
@@ -124,7 +124,7 @@ async def confirm(message: Message, state: FSMContext):
 
     if message.media_group_id:
         print('Это группа сообщений')
-        print(f'{message.media_group_id = }')
+        print(f'{message.media_group_id=}')
 
     if message.photo:
         await state.set_state(st.Send.ph_true)
@@ -132,14 +132,23 @@ async def confirm(message: Message, state: FSMContext):
     else:
         await state.update_data(ph_true=None)
 
+    chat_id = await rq.get_list_chats()
     data = await state.get_data()
     await message.answer(text='Вот так будет выглядеть твое сообщение:')
-    if data['ph_true'] != None:
+    if data['ph_true']:
         await message.bot.send_photo(chat_id=message.chat.id, photo=data['ph_true'], caption=data['sendmess'])
     else:
         await message.answer(text=data['sendmess'])
+    list_ = []
 
-    await message.answer('Отправляем?', reply_markup=kb.keyboard_send_mess)
+    for chat in chat_id:
+        chat_obj = chat[0]
+        list_.append(chat_obj.chat_title)
+    text_to_answer = (f'Список чатов, в которые уйдет сообщение: \n'
+                      f'— {"\n— ".join(list_) }\n\n'
+                      f'Отправляем?')
+
+    await message.answer(text_to_answer, reply_markup=kb.keyboard_send_mess)
 
 
 @ownrouter.callback_query(F.data == 'send', RootProtect())
