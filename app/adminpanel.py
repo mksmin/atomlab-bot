@@ -559,8 +559,6 @@ async def admin_cancel_delete(callback: CallbackQuery, state: FSMContext):
 async def get_qr_from_link(link: str, user_id: int, path_to_save: Path) -> Path:
     code = secrets.randbelow(1_000_000)
 
-    logger.info(f'получил ссылку: {link = }')
-
     qr.add_data(link)
     qr.make(fit=True)
 
@@ -606,8 +604,6 @@ async def send_qr_code(message: Message, state: FSMContext):
 
         link = item.extract_from(message.text)
         user_id = message.from_user.id
-
-        logger.info(f'link: {link = }')
 
         qr_path_to_send = await get_qr_from_link(
             link=link,
