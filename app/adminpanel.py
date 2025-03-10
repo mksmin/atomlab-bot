@@ -2,23 +2,35 @@
 import aiohttp
 import json
 import os
+import secrets
+
+import qrcode.constants
+from qrcode.main import QRCode
 
 # import functions from libraries
 from aiogram import F, Router
 from aiogram.filters import ADMINISTRATOR, Command, ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER
-from aiogram.types import CallbackQuery, ChatMemberUpdated, Message
+from aiogram.types import CallbackQuery, ChatMemberUpdated, Message, FSInputFile
 from aiogram.fsm.context import FSMContext
 
 # import functions from my modules
 import app.database.request as rq
-import app.statesuser as st
 import app.keyboards as kb
+import app.statesuser as st
 
 from app.database import User, Project
-from app.middlewares import ChatType, RootProtect
-from config.config import get_id_chat_root, logger
 from app.messages import msg_texts as mt
+from app.middlewares import ChatType, RootProtect
 from app.handlers import get_user_profile
+from config.config import get_id_chat_root, logger
+from pathlib import Path
+
+BASE_DIR_PATH = Path(__file__).resolve().parent.parent
+qr = QRCode(
+    error_correction=qrcode.constants.ERROR_CORRECT_H,
+    box_size=30,
+    border=4,
+)
 
 ownrouter = Router()  # main handler
 ownrouter.my_chat_member.filter(F.chat.type.in_({'group', 'supergroup'}))
@@ -542,3 +554,70 @@ async def admin_cancel_delete(callback: CallbackQuery, state: FSMContext):
     await callback.answer(f'Пока ничего нет')
     await state.clear()
     return
+
+
+async def get_qr_from_link(link: str, user_id: int, path_to_save: Path) -> Path:
+    code = secrets.randbelow(1_000_000)
+
+    logger.info(f'получил ссылку: {link = }')
+
+    qr.add_data(link)
+    qr.make(fit=True)
+
+    qr_path: Path = path_to_save / f'{user_id}_{code:06d}.png'
+
+    qr_img = qr.make_image(fill_color="black", back_color="white")
+    qr_img.save(qr_path)
+    qr.clear()
+    return qr_path
+
+
+async def remove_qr_code(path_to_delete: Path):
+    if path_to_delete.exists():
+        path_to_delete.unlink()
+
+
+@ownrouter.callback_query(F.data == 'create_qr_code', RootProtect())
+async def create_qr_code(callback: CallbackQuery, state: FSMContext):
+    await callback.answer(' ')
+    await state.set_state(st.CreateQR.start_qr)
+    await callback.message.answer('Пришли ссылку, для которой ты хочешь создать QR-код')
+
+
+@ownrouter.message(st.CreateQR.start_qr, RootProtect())
+async def send_qr_code(message: Message, state: FSMContext):
+    entitles = message.entities
+
+    dir_to_save_qr = BASE_DIR_PATH / 'media/qrcodes'
+
+    if not dir_to_save_qr.exists():
+        dir_to_save_qr.mkdir(parents=True, exist_ok=True)
+
+    if not entitles:
+        await message.answer('Возникла ошибка. Отмена операции')
+        await state.clear()
+        return
+
+    for item in entitles:
+        if item.type != 'url':
+            await message.answer('Возникла ошибка. Отмена операции')
+            await state.clear()
+            return
+
+        link = item.extract_from(message.text)
+        user_id = message.from_user.id
+
+        logger.info(f'link: {link = }')
+
+        qr_path_to_send = await get_qr_from_link(
+            link=link,
+            user_id=user_id,
+            path_to_save=dir_to_save_qr
+        )
+
+        await message.reply_document(document=FSInputFile(qr_path_to_send),
+                                     filename='qrcode.png',
+                                     caption=f'QR-код на {link}')
+        await remove_qr_code(qr_path_to_send)
+
+    await state.clear()

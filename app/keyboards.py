@@ -25,6 +25,7 @@ rpanel = InlineKeyboardMarkup(inline_keyboard=[
      InlineKeyboardButton(text='👮‍♂️ Назначить админа', callback_data='set_user_to_admin')],
     [InlineKeyboardButton(text='📜 Статистика регистраций', callback_data='get_statistics')],
     [InlineKeyboardButton(text='🪪 Профиль пользователя', callback_data='user_profile')],
+    [InlineKeyboardButton(text='Создать QR', callback_data='create_qr_code')],
 ])
 
 keyboard_user_profile = InlineKeyboardMarkup(inline_keyboard=[

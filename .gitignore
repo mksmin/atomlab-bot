@@ -5,6 +5,7 @@ app/database/__pycache__
 config/__pycache__
 __pycache__
 app/auth/
+media/*
 
 # virtual environment
 .venv
