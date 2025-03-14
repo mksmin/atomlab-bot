@@ -24,5 +24,6 @@ class DeleteEntry(StatesGroup):
     object_number = State()
     last_message_id = State()
 
+
 class CreateQR(StatesGroup):
     start_qr = State()

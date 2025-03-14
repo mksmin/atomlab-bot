@@ -92,14 +92,18 @@ async def register_chat_to_db(message: Message) -> None:
 )
 async def bot_added_as_admin(update: ChatMemberUpdated):
     root_id = await get_id_chat_root()
+    chat_id = update.chat.id
+    chat_title = update.chat.title
+
+    # Отправляем сообщение в чат с ID, указанным в переменной root_id
     await update.bot.send_message(chat_id=root_id,
                                   text=f'Бот стал администратором группы'
                                        f'\n\n<b>Название группы:</b>'
-                                       f'\n{update.chat.title}'
-                                       f'\n<b>ID группы:</b> {update.chat.id}'
+                                       f'\n{chat_title}'
+                                       f'\n<b>ID группы:</b> {chat_id}'
                                        f'\n<b>Тип группы:</b> {update.chat.type}')
-    chat_id = update.chat.id
-    chat_title = update.chat.title
+
+    # Регистрируем чат в базе данных
     await rq.set_chat(chat_id, chat_title)
 
 
@@ -145,7 +149,7 @@ async def confirm(message: Message, state: FSMContext):
         chat_obj = chat[0]
         list_.append(chat_obj.chat_title)
     text_to_answer = (f'Список чатов, в которые уйдет сообщение: \n'
-                      f'— {"\n— ".join(list_) }\n\n'
+                      f'— {"\n— ".join(list_)}\n\n'
                       f'Отправляем?')
 
     await message.answer(text_to_answer, reply_markup=kb.keyboard_send_mess)
@@ -527,6 +531,16 @@ async def get_number_of_project(message: Message, state: FSMContext):
 
 @ownrouter.callback_query(F.data == 'confirm_delete', RootProtect())
 async def admin_confirm_delete_prj(callback: CallbackQuery, state: FSMContext):
+    """
+    Обрабатывает callback запрос на подтверждение удаления проекта.
+
+    Args:
+        callback (CallbackQuery): Объект callback запроса.
+        state (FSMContext): Контекст состояния.
+
+    Returns:
+        None
+    """
     # Получаю конкретный объект класса Project для удаления
     data = await state.get_data()
     project_to_delete = data['object_number']
@@ -535,14 +549,15 @@ async def admin_confirm_delete_prj(callback: CallbackQuery, state: FSMContext):
         await rq.delete_entry(obj=project_to_delete)
         await callback.answer(f'Удален успешно')
         await callback.message.edit_text(f'Проект успешно удален', reply_markup=None)
-        await state.clear()
-        return
 
     except Exception as e:
         await callback.message.edit_text(f'Операция отменена. Возникла ошибка: {e}', reply_markup=None)
         await callback.answer(f'Ошибка при удалении')
-        await state.clear()
-        return
+
+    await state.clear()
+
+
+
 
 
 @ownrouter.message(st.DeleteEntry.object_number, RootProtect(), ChatType(chat_type='private'))
@@ -566,6 +581,17 @@ async def admin_cancel_delete(callback: CallbackQuery, state: FSMContext):
 
 
 async def get_qr_from_link(link: str, user_id: int, path_to_save: Path) -> Path:
+    """
+    Generates a QR code from a given link and saves it to a specified path.
+
+    Args:
+        link (str): The link to be encoded in the QR code.
+        user_id (int): The user ID associated with the QR code.
+        path_to_save (Path): The path where the QR code image will be saved.
+
+    Returns:
+        Path: The path to the saved QR code image.
+    """
     code = secrets.randbelow(1_000_000)
 
     qr.add_data(link)
@@ -580,12 +606,31 @@ async def get_qr_from_link(link: str, user_id: int, path_to_save: Path) -> Path:
 
 
 async def remove_qr_code(path_to_delete: Path):
+    """
+    Removes a QR code image from a specified path.
+
+    Args:
+        path_to_delete (Path): The path to the QR code image to be deleted.
+
+    Returns:
+        None
+    """
     if path_to_delete.exists():
         path_to_delete.unlink()
 
 
 @ownrouter.callback_query(F.data == 'create_qr_code', RootProtect())
 async def create_qr_code(callback: CallbackQuery, state: FSMContext):
+    """
+    Обрабатывает callback запрос на создание QR-кода.
+
+    Args:
+        callback (CallbackQuery): Объект callback запроса.
+        state (FSMContext): Контекст состояния.
+
+    Returns:
+        None
+    """
     await callback.answer(' ')
     await state.set_state(st.CreateQR.start_qr)
     await callback.message.answer('Пришли ссылку, для которой ты хочешь создать QR-код')
@@ -593,6 +638,16 @@ async def create_qr_code(callback: CallbackQuery, state: FSMContext):
 
 @ownrouter.message(st.CreateQR.start_qr, RootProtect())
 async def send_qr_code(message: Message, state: FSMContext):
+    """
+    Обрабатывает сообщение с ссылкой и создает QR-код для этой ссылки.
+
+    Args:
+        message (Message): Сообщение, содержащее ссылку.
+        state (FSMContext): Контекст состояния.
+
+    Returns:
+        None
+    """
     entitles = message.entities
 
     dir_to_save_qr = BASE_DIR_PATH / 'media/qrcodes'

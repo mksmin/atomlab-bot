@@ -17,7 +17,7 @@ from config import BotNotification as bn
 async def start() -> Bot:
     bot_token = await get_tokens('TOKEN')
     bot_class = Bot(token=bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-    return bot_class
+    return bot_class  # Возвращает объект 'Bot'
 
 
 async def main(bot) -> None:
@@ -40,14 +40,14 @@ async def main(bot) -> None:
         await bot.session.close()
 
 
-async def on_startup(dispatcher) -> None:
+async def on_startup() -> None:
     if bn.bot_start:
         root_user_id = await get_id_chat_root()
         await bot.send_message(chat_id=root_user_id, text="Бот запущен")
     return
 
 
-async def on_shutdown(dispatcher) -> None:
+async def on_shutdown() -> None:
     if bn.bot_start:
         root_user_id = await get_id_chat_root()
         await bot.send_message(chat_id=root_user_id, text="Бот останавливается")
