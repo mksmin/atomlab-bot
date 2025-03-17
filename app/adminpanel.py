@@ -148,12 +148,13 @@ async def confirm(message: Message, state: FSMContext):
     for chat in chat_id:
         chat_obj = chat[0]
         list_.append(chat_obj.chat_title)
+
+    list_chats = '\n— '.join(list_)
     text_to_answer = (
-        f'Список чатов, в которые уйдет сообщение:'
-        f'\n— {"\n— ".join(list_)}'
+        f"Список чатов, в которые уйдет сообщение:"
+        f'\n— {list_chats}'
         f'\n\nОтправляем?'
     )
-
     await message.answer(text_to_answer, reply_markup=kb.keyboard_send_mess)
 
 
