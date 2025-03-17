@@ -148,9 +148,11 @@ async def confirm(message: Message, state: FSMContext):
     for chat in chat_id:
         chat_obj = chat[0]
         list_.append(chat_obj.chat_title)
-    text_to_answer = (f'Список чатов, в которые уйдет сообщение: \n'
-                      f'— {"\n— ".join(list_)}'
-                      f'\n\nОтправляем?')
+    text_to_answer = (
+        f'Список чатов, в которые уйдет сообщение:'
+        f'\n— {"\n— ".join(list_)}'
+        f'\n\nОтправляем?'
+    )
 
     await message.answer(text_to_answer, reply_markup=kb.keyboard_send_mess)
 
@@ -555,9 +557,6 @@ async def admin_confirm_delete_prj(callback: CallbackQuery, state: FSMContext):
         await callback.answer(f'Ошибка при удалении')
 
     await state.clear()
-
-
-
 
 
 @ownrouter.message(st.DeleteEntry.object_number, RootProtect(), ChatType(chat_type='private'))
