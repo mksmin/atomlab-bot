@@ -8,14 +8,15 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
 # import from modules
-from app.handlers import router
 from app.adminpanel import ownrouter
-from config.config import get_tokens, get_id_chat_root, logger
+from app.handlers import router
+from app.database import db_helper
+from config import get_tokens, get_id_chat_root, logger, settings
 from config import BotNotification as bn
 
 
 async def start() -> Bot:
-    bot_token = await get_tokens('TOKEN')
+    bot_token = settings.bot.token
     bot_class = Bot(token=bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     return bot_class  # Возвращает объект 'Bot'
 
@@ -48,6 +49,9 @@ async def on_startup() -> None:
 
 
 async def on_shutdown() -> None:
+    await db_helper.dispose()
+    logger.info('db disposed')
+
     if bn.bot_start:
         root_user_id = await get_id_chat_root()
         await bot.send_message(chat_id=root_user_id, text="Бот останавливается")
