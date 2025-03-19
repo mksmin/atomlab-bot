@@ -69,8 +69,8 @@ class Settings(BaseSettings):
     postsql_host: str
     root: int
     root_chat: int
-    postgresql_prod: str
-    token_prod: str
+    postgresql_prod: str = ""
+    token_prod: str = ""
 
 
 settings = Settings()
