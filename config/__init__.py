@@ -3,10 +3,11 @@ __all__ = (
     'get_id_chat_root',
     'dbconf',
     'logger',
-    'BotNotification'
+    'BotNotification',
+    'settings'
 )
 
-from .config import get_tokens, get_id_chat_root, logger
+from .config import get_tokens, get_id_chat_root, logger, settings
 from .parser_settings import dbconf, BotNotification
 
 
