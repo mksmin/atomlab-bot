@@ -6,11 +6,19 @@ Module with functions for requesting data from database
 from datetime import datetime
 from functools import wraps
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
-from sqlalchemy.sql import text
 
 # import from modules
-from app.database.models import async_session, Base, ChatUsers, Chat, User, Project, TimestampsMixin
+from app.database import (
+    async_session,
+    Base,
+    ChatUsers,
+    Chat,
+    User,
+    Project,
+    TimestampsMixin,
+    db_helper
+)
+
 from config import logger
 
 
@@ -21,7 +29,7 @@ def connection(function):
 
     @wraps(function)
     async def wrapper(*args, **kwargs):
-        async with async_session() as session:
+        async for session in db_helper.session_getter():
             return await function(session, *args, **kwargs)
 
     return wrapper
