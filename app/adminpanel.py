@@ -2,6 +2,7 @@
 import aiohttp
 import json
 import os
+import re
 import secrets
 
 import qrcode.constants
@@ -12,6 +13,7 @@ from aiogram import F, Router
 from aiogram.filters import ADMINISTRATOR, Command, ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER
 from aiogram.types import CallbackQuery, ChatMemberUpdated, Message, FSInputFile
 from aiogram.fsm.context import FSMContext
+from collections import defaultdict
 
 # import functions from my modules
 import app.database.request as rq
@@ -244,14 +246,35 @@ async def create_message_for_statistics(server_response: str) -> str:
     if data.get('error'):
         return data['error']
 
-    list_ = []
-    for name, value in data['message']['details'].items():
-        list_.append(f'{name}: {value}')
+    list_ = [(name, value) for name, value in data['message']['details'].items()]
 
-    message = '\n'.join(list_)
+    grouped_data = defaultdict(list)
+    pattern = re.compile(
+        r'^(.*)\s*\((начальный|средний)\s+уровень\)',
+        re.MULTILINE
+    )
+
+    for name, value in list_:
+        match = pattern.match(name)
+        if not match:
+            continue
+
+        grouped_data[match.group(2)].append(
+            {
+                'name': match.group(1).strip(),
+                'value': int(value)
+            }
+        )
+    list_to_send = []
+    for level, items in grouped_data.items():
+        list_to_send.append(f"\nУровень: {level.upper()}")
+        for item in items:
+            list_to_send.append(f"<b>{item['value']}</b> — {item['name']}")
+
+    message = '\n'.join(list_to_send)
     message_to_return = (f"<b>Статистика регистрации</b>\n"
                          f"Всего заявок: {data['message']['total_users']}"
-                         f"\n\nДетально по компетенциям:"
+                         f"\n\n<b>Детально по компетенциям:</b>"
                          f"\n{message}")
     return message_to_return
 
