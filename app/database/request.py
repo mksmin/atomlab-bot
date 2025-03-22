@@ -5,6 +5,8 @@ Module with functions for requesting data from database
 # import from
 from datetime import datetime
 from functools import wraps
+
+import aiohttp
 from sqlalchemy import func, select
 
 # import from modules
@@ -222,26 +224,40 @@ async def remove_link_from_db(session: async_session, tg_user_id: int, tg_chat_i
 
 @connection
 async def create_project_of_user(session: async_session, project: Project) -> bool:
-    prj_is_exists = await session.scalar(select(Project).where(Project.prj_name == project.prj_name,
-                                                               Project.prj_owner == project.prj_owner))
+    prj_is_exists = await session.scalar(
+        select(Project).where(
+            Project.prj_name == project.prj_name,
+            Project.prj_owner == project.prj_owner,
+            Project.deleted_at.is_(None)
+        ))
 
-    if not prj_is_exists:
-        save_prj = Project()
-        target_attrs = set(dir(save_prj))
-
-        valid_attrs = [attr for attr in project.__dict__
-                       if attr in target_attrs]
-
-        for attr in valid_attrs:
-            setattr(save_prj, attr, getattr(project, attr))
-
-        session.add(save_prj)
-        await session.commit()
-        logger.info(f'The new project {save_prj.prj_name} has been created by user {save_prj.prj_owner}')
-        return True
-    else:
-        logger.info(f'The project {prj_is_exists.prj_name} already exists')
+    if prj_is_exists:
+        logger.info(f'Проект {project.prj_name} уже существует')
         return False
+
+
+    new_project = Project(
+        prj_name=project.prj_name,
+        prj_description=project.prj_description,
+        prj_owner=project.prj_owner
+    )
+
+    session.add(new_project)
+    await session.flush()
+    await session.refresh(new_project)
+    await session.commit()
+
+    body: dict[str, str]= {"project_uuid": str(new_project.uuid)}
+
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post('https://api.атом-лаб.рф/api/v2/users/create_project', json=body) as response:
+            response_server = await response.json()
+
+    logger.info(f'The new project {new_project.prj_name} has been created by user {new_project.prj_owner}')
+    logger.info(f'Response from server: {response_server}')
+    return True
+
 
 
 @connection

@@ -8,7 +8,7 @@ import uuid
 
 # import from libraries
 from datetime import datetime
-from sqlalchemy import BigInteger, ForeignKey, String, Integer
+from sqlalchemy import BigInteger, ForeignKey, String, Integer, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 from sqlalchemy.dialects.postgresql import UUID
@@ -113,7 +113,13 @@ class Project(SearchableMixin, TimestampsMixin, Base):
     __tablename__ = 'projects'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    uuid = mapped_column(UUID(as_uuid=True), nullable=False, default=uuid.uuid4, unique=True)
+    uuid = mapped_column(
+        UUID(as_uuid=True),
+        nullable=False,
+        default=uuid.uuid4,
+        server_default=text("uuid_generate_v4()"),
+        unique=True
+    )
     prj_name: Mapped[str] = mapped_column(String(50), nullable=True)
     prj_description: Mapped[str] = mapped_column(String(200), nullable=True)
     prj_owner = mapped_column(BigInteger, ForeignKey('users.tg_id'), nullable=False)
@@ -127,3 +133,11 @@ class Project(SearchableMixin, TimestampsMixin, Base):
     @classmethod
     def get_search_attribute_name(cls):
         return "prj_name"
+
+    def __str__(self):
+        return (f'<Project('
+                f'id={self.id},'
+                f'uuid={self.uuid},'
+                f'prj_name={self.prj_name},'
+                f'prj_description={self.prj_description},'
+                f'prj_owner={self.prj_owner})>')
