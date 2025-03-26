@@ -235,7 +235,6 @@ async def create_project_of_user(session: async_session, project: Project) -> bo
         logger.info(f'Проект {project.prj_name} уже существует')
         return False
 
-
     new_project = Project(
         prj_name=project.prj_name,
         prj_description=project.prj_description,
@@ -247,17 +246,15 @@ async def create_project_of_user(session: async_session, project: Project) -> bo
     await session.refresh(new_project)
     await session.commit()
 
-    body: dict[str, str]= {"project_uuid": str(new_project.uuid)}
-
+    body: dict[str, str] = {"project_uuid": str(new_project.uuid)}
 
     async with aiohttp.ClientSession() as session:
-        async with session.post('https://api.атом-лаб.рф/api/v2/users/create_project', json=body) as response:
+        async with session.post('https://api.атом-лаб.рф/create_project', json=body) as response:
             response_server = await response.json()
 
     logger.info(f'The new project {new_project.prj_name} has been created by user {new_project.prj_owner}')
     logger.info(f'Response from server: {response_server}')
     return True
-
 
 
 @connection
