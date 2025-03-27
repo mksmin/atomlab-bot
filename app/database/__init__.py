@@ -8,9 +8,10 @@ __all__ = (
     'async_session',
     'ChatUsers',
     'Chat',
-    'TimestampsMixin'
+    'TimestampsMixin',
+    'ProjectSchema',
 )
 
 from .db_helper import db_helper
-from .models import Base, post_host_token, User, Project, async_session, ChatUsers, Chat, TimestampsMixin
+from .models import Base, post_host_token, User, Project, async_session, ChatUsers, Chat, TimestampsMixin, ProjectSchema
 from .request import get_one_user_by_tgid, connection

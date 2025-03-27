@@ -8,6 +8,7 @@ import uuid
 
 # import from libraries
 from datetime import datetime
+from pydantic import BaseModel, Field, UUID4, ConfigDict
 from sqlalchemy import BigInteger, ForeignKey, String, Integer, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
@@ -141,3 +142,34 @@ class Project(SearchableMixin, TimestampsMixin, Base):
                 f'prj_name={self.prj_name},'
                 f'prj_description={self.prj_description},'
                 f'prj_owner={self.prj_owner})>')
+
+
+class ProjectSchema(BaseModel):
+    """
+    Схема для ответа от сервера (сервер -> клиент)
+    """
+
+    name: str | None = Field(
+        None,
+        min_length=3,
+        max_length=50,
+        alias="prj_name",
+    )
+    description: str | None = Field(
+        None,
+        max_length=200,
+        alias="prj_description",
+    )
+    owner_id: int = Field(
+        ..., alias="prj_owner", json_schema_extra={"example": 123456789}
+    )
+    model_config = ConfigDict(
+        extra="ignore",
+        json_schema_extra={
+            "example": {
+                "prj_name": "Test project",
+                "prj_description": "Test project description",
+                "prj_owner": 123456,
+            }
+        },
+    )
