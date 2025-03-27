@@ -1,7 +1,7 @@
 """
 Module with functions for requesting data from database
 """
-
+import json
 # import from
 from datetime import datetime
 from functools import wraps
@@ -17,6 +17,7 @@ from app.database import (
     Chat,
     User,
     Project,
+    ProjectSchema,
     TimestampsMixin,
     db_helper
 )
@@ -222,38 +223,26 @@ async def remove_link_from_db(session: async_session, tg_user_id: int, tg_chat_i
         await session.commit()
 
 
-@connection
-async def create_project_of_user(session: async_session, project: Project) -> bool:
-    prj_is_exists = await session.scalar(
-        select(Project).where(
-            Project.prj_name == project.prj_name,
-            Project.prj_owner == project.prj_owner,
-            Project.deleted_at.is_(None)
-        ))
-
-    if prj_is_exists:
-        logger.info(f'Проект {project.prj_name} уже существует')
-        return False
-
-    new_project = Project(
+async def create_project_of_user(project: Project) -> bool:
+    new_project = ProjectSchema(
         prj_name=project.prj_name,
         prj_description=project.prj_description,
         prj_owner=project.prj_owner
     )
-
-    session.add(new_project)
-    await session.flush()
-    await session.refresh(new_project)
-    await session.commit()
-
-    body: dict[str, str] = {"project_uuid": str(new_project.uuid)}
+    project_as_dict = new_project.model_dump(by_alias=True)
 
     async with aiohttp.ClientSession() as session:
-        async with session.post('https://api.атом-лаб.рф/create_project', json=body) as response:
-            response_server = await response.json()
+        async with session.post('https://api.атом-лаб.рф/projects', json=project_as_dict) as response:
+            json_response = await response.json()
+            status_code = response.status
+    if status_code == 422:
+        logger.error(f'ValidationError: {json_response}')
+        return False
+    if status_code == 400:
+        logger.error(f'ValueError: {json_response}')
+        return False
 
-    logger.info(f'The new project {new_project.prj_name} has been created by user {new_project.prj_owner}')
-    logger.info(f'Response from server: {response_server}')
+    logger.info(f'The new project {new_project.name} has been created by user {new_project.owner_id}')
     return True
 
 

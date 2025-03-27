@@ -409,8 +409,10 @@ async def create_project(message: Message, state: FSMContext):
 async def save_name_of_project(message: Message, state: FSMContext):
     await delete_keyboard_from_message(message, state)
 
-    if len(message.text) > 50:
-        await message.answer(f'Ошибка. Длина названия должна быть не больше 50 символов. Попробуй еще раз')
+    if len(message.text) > 50 or len(message.text) < 3:
+        await message.answer(
+            f'Ошибка. Длина названия должна быть не больше 50 символов и не меньше 3-х. Попробуй еще раз'
+        )
         return
 
     await state.update_data(prj_name=message.text, prj_owner=message.from_user.id)
@@ -466,10 +468,11 @@ async def save_prj(callback: CallbackQuery, state: FSMContext):
         await callback.message.edit_text('Проект успешно сохранен', reply_markup=None)
         await callback.answer('Проект успешно сохранен ')
         await state.clear()
-    else:
-        await callback.message.edit_text('Проект c таким названием уже существует ', reply_markup=None)
-        await callback.answer('Проект не сохранен')
-        await state.clear()
+        return
+
+    await callback.message.edit_text('Возникла ошибка при сохранении проекта', reply_markup=None)
+    await callback.answer('Проект не сохранен')
+    await state.clear()
 
 
 @ownrouter.callback_query(F.data == 'myprojects', RootProtect())
