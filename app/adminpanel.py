@@ -479,7 +479,7 @@ async def save_prj(callback: CallbackQuery, state: FSMContext):
 async def save_prj(callback: CallbackQuery, state: FSMContext):
     await callback.answer('Вызов списка проектов')
     list_projects_objects = await rq.get_list_of_projects(tg_user_id=callback.from_user.id)
-    data_list = [result[0].prj_name for result in list_projects_objects]
+    data_list = [item['prj_name'] for key, item in list_projects_objects.items()]
 
     if len(data_list) > 0:
         list_of_names = '\n'.join(f'{i}. {item}' for i, item in enumerate(data_list, start=1))

@@ -246,12 +246,13 @@ async def create_project_of_user(project: Project) -> bool:
     return True
 
 
-@connection
-async def get_list_of_projects(session: async_session, tg_user_id: int) -> list[set[Project]]:
-    list_of_chats = await session.execute(select(Project).where(Project.prj_owner == tg_user_id,
-                                                                Project.deleted_at.is_(None)))
+async def get_list_of_projects(tg_user_id: int) -> dict[str, dict[str, any]] :
+    async with aiohttp.ClientSession() as session:
+        params = {"prj_owner": tg_user_id}
+        async with session.get('https://api.атом-лаб.рф/projects', params=params)  as response:
+            if response.status == 200:
+                return await response.json()
 
-    return list_of_chats
 
 
 @connection
