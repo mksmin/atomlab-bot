@@ -293,7 +293,7 @@ async def get_statistic(message: Message | CallbackQuery):
         os.makedirs(os.path.join(path_dir, 'auth'))
 
     if not file_exists:
-        result_token = await get_token('https://api.атом-лаб.рф/get_token/', user_id)
+        result_token = await get_token('https://api.mks-min.ru/get_token/', user_id)
         with open(path_file, 'x') as f:
             token = result_token['message']
             message_to_write = {"User": user_id, "Token": token}
@@ -304,7 +304,7 @@ async def get_statistic(message: Message | CallbackQuery):
     with open(path_file, 'r') as f:
         data = json.load(f)
         token = data['Token']
-        result_statistic = await get_stat('https://api.атом-лаб.рф/statistics/', token)
+        result_statistic = await get_stat('https://api.mks-min.ru/statistics/', token)
         message_to_send = await create_message_for_statistics(result_statistic)
         await message.answer(message_to_send)
 

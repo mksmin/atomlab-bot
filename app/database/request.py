@@ -232,7 +232,7 @@ async def create_project_of_user(project: Project) -> bool:
     project_as_dict = new_project.model_dump(by_alias=True)
 
     async with aiohttp.ClientSession() as session:
-        async with session.post('https://api.атом-лаб.рф/projects', json=project_as_dict) as response:
+        async with session.post('https://api.mks-min.ru/projects', json=project_as_dict) as response:
             json_response = await response.json()
             status_code = response.status
     if status_code == 422:
@@ -249,7 +249,7 @@ async def create_project_of_user(project: Project) -> bool:
 async def get_list_of_projects(tg_user_id: int) -> dict[str, dict[str, any]] :
     async with aiohttp.ClientSession() as session:
         params = {"prj_owner": tg_user_id}
-        async with session.get('https://api.атом-лаб.рф/projects', params=params)  as response:
+        async with session.get('https://api.mks-min.ru/projects', params=params)  as response:
             if response.status == 200:
                 return await response.json()
 
