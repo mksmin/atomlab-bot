@@ -19,7 +19,8 @@ from app.database import (
     Project,
     ProjectSchema,
     TimestampsMixin,
-    db_helper
+    db_helper,
+    crud_manager
 )
 
 from config import logger
@@ -176,11 +177,11 @@ async def check_karma(session: async_session, tg_id_sender: int, tg_id_recipient
     recipient = await get_one_user_by_tgid(session, tg_id_recipient)
 
     if not recipient:
-        await set_user(tg_id_recipient)
+        await crud_manager.user.create_user(tg_id=tg_id_recipient)
         sender = await get_one_user_by_tgid(session, tg_id_sender)
 
     if not sender:
-        await set_user(tg_id_sender)
+        await crud_manager.user.create_user(tg_id=tg_id_sender)
         recipient = await get_one_user_by_tgid(session, tg_id_recipient)
 
     return sender, recipient
@@ -246,13 +247,12 @@ async def create_project_of_user(project: Project) -> bool:
     return True
 
 
-async def get_list_of_projects(tg_user_id: int) -> dict[str, dict[str, any]] :
+async def get_list_of_projects(tg_user_id: int) -> dict[str, dict[str, any]]:
     async with aiohttp.ClientSession() as session:
         params = {"prj_owner": tg_user_id}
-        async with session.get('https://api.mks-min.ru/projects', params=params)  as response:
+        async with session.get('https://api.mks-min.ru/projects', params=params) as response:
             if response.status == 200:
                 return await response.json()
-
 
 
 @connection

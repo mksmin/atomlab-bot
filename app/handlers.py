@@ -9,6 +9,7 @@ from aiogram.fsm.context import FSMContext
 
 # import from modules
 import app.database.request as rq
+from app.database import crud_manager
 from app.messages import msg_texts
 from app.middlewares import ChatType
 from config import get_id_chat_root, logger
@@ -39,7 +40,7 @@ async def cmd_start(message: Message, command: CommandObject) -> None:
         pass
 
     from_user = message.from_user
-    await rq.set_user(from_user.id, from_user.username)
+    await crud_manager.user.create_user(tg_id=from_user.id, username=from_user.username)
     await message.answer(f'Привет, {from_user.first_name}!')
 
 
@@ -73,7 +74,7 @@ async def get_member(update: ChatMemberUpdated) -> None:
     chat = update.chat
     user = update.new_chat_member.user
 
-    await rq.set_user(user.id, user.username)  # регистрируем юзера
+    await crud_manager.user.create_user(tg_id=user.id, username=user.username)  # регистрируем юзера
     await rq.set_user_chat(user.id, chat.id)  # записываем в какой чат вступил
     count_chats = await rq.get_count_users_chat(user.id)  # получаем количество чатов
 
