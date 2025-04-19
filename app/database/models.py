@@ -62,6 +62,18 @@ class User(SearchableMixin, TimestampsMixin, Base):
     total_karma: Mapped[int] = mapped_column(nullable=False, default=0, server_default='0')
     user_status: Mapped[str] = mapped_column(String(30), nullable=True, server_default='user', default='user')
 
+    def __str__(self):
+        return (f"User("
+                f"id={self.id},"
+                f"tg_id={self.tg_id},"
+                f"tg_username={self.tg_username})")
+
+    def __repr__(self):
+        return (f"User("
+                f"id={self.id},"
+                f"tg_id={self.tg_id},"
+                f"tg_username={self.tg_username})")
+
     def remove_karma_points(self):
         self.karma_start_value -= 1
 
