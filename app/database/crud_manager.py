@@ -122,12 +122,3 @@ class CRUDManager:
 
 
 crud_manager = CRUDManager(db_helper.session_factory)
-
-
-async def main():
-    new_user = await crud_manager.user.get_user_by_tg_id(499956)
-    print(f"new_user: {new_user}")
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
