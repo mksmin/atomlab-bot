@@ -1,13 +1,16 @@
 """
 Module with functions for requesting data from database
 """
+# import libs
+import aiohttp
+import asyncio
 import json
-# import from
+
+# import from libs
 from datetime import datetime
 from functools import wraps
-
-import aiohttp
 from sqlalchemy import func, select
+from typing import Coroutine
 
 # import from modules
 from app.database import (
@@ -22,7 +25,6 @@ from app.database import (
     db_helper,
     crud_manager
 )
-
 from config import logger
 
 
@@ -89,30 +91,6 @@ async def get_count_users_chat(session: async_session, tg_id: int) -> int:
 
 
 @connection
-async def set_user(session: async_session, tg_id, username: str = 'Null') -> None:
-    """
-    Function for writing a user to database
-
-    :param session: is connector to database from decorator @connection
-    :param tg_id: (int) id of the user from telegram
-    :param username: (str) username of the user from telegram
-    :return: None
-    """
-
-    user = await get_one_user_by_tgid(session, tg_id)
-
-    if not user:
-        session.add(User(tg_id=tg_id, tg_username=username))
-        await session.commit()  # save
-        logger.info(f'The user {username} {tg_id} has been saved')
-
-    if user.tg_username != username:
-        user.tg_username = username
-        await session.commit()  # save
-        logger.info(f'The user {username} {tg_id} has been changed')
-
-
-@connection
 async def set_chat(session: async_session, chat_id: int, chat_title) -> None:
     """
     Function for writing a chat's info to database
@@ -163,48 +141,43 @@ async def get_list_chats(session: async_session) -> list:
     return list_of_chats
 
 
-@connection
-async def check_karma(session: async_session, tg_id_sender: int, tg_id_recipient: int) -> tuple[User, User]:
+async def check_karma(tg_id_sender: int, tg_id_recipient: int) -> tuple[User, User]:
     """
     The function is to connect to the database and receive the User's obj as tuple[User(Sender), User(Recipient)]
 
-    :param session: is connector to database from decorator @connection
     :param tg_id_sender: (int) id of the user from telegram. Example: 123456
     :param tg_id_recipient: (int) id of the user from telegram. Example: 123456
     :return: tuple[User, User]
     """
-    sender = await get_one_user_by_tgid(session, tg_id_sender)
-    recipient = await get_one_user_by_tgid(session, tg_id_recipient)
+
+    tasks = [crud_manager.user.get_user_by_tg_id(uid) for uid in [tg_id_sender, tg_id_recipient]]
+    sender, recipient = await asyncio.gather(*tasks)
 
     if not recipient:
-        await crud_manager.user.create_user(tg_id=tg_id_recipient)
-        sender = await get_one_user_by_tgid(session, tg_id_sender)
+        recipient = await crud_manager.user.create_user(tg_id=tg_id_recipient)
 
     if not sender:
-        await crud_manager.user.create_user(tg_id=tg_id_sender)
-        recipient = await get_one_user_by_tgid(session, tg_id_recipient)
+        sender = await crud_manager.user.create_user(tg_id=tg_id_sender)
 
     return sender, recipient
 
 
-@connection
-async def update_karma(session: async_session, tg_id_sender: int, tg_id_recipient: int) -> None:
+async def update_karma(tg_id_sender: int, tg_id_recipient: int) -> None:
     """
     The function is to connect to the database and update the value of sender's and recipient's karma
 
-    :param session: is connector to database from decorator @connection
     :param tg_id_sender: (int) id of the user from telegram. Example: 123456
     :param tg_id_recipient: (int) id of the user from telegram. Example: 123456
     :return: None
     """
-    s = await get_one_user_by_tgid(session, tg_id_sender)
-    s.remove_karma_points()
+    tasks: list[Coroutine] = [crud_manager.user.get_user_by_tg_id(uid) for uid in [tg_id_sender, tg_id_recipient]]
+    sender, recipient = await asyncio.gather(*tasks)  # type: User, User
 
-    r = await get_one_user_by_tgid(session, tg_id_recipient)
-    r.add_karma_value()
+    sender.remove_karma_points()
+    recipient.add_karma_value()
 
-    session.add(s, r)
-    await session.commit()
+    tasks: list[Coroutine] = [crud_manager.user.update(user) for user in [sender, recipient]]
+    await asyncio.gather(*tasks)
 
 
 @connection
