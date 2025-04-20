@@ -44,23 +44,19 @@ async def get_panel(message: Message | CallbackQuery) -> None:
     """
     func for call root panel
     """
+    is_callback = isinstance(message, CallbackQuery)
+    user_id = message.from_user.id
+    chat_id = message.message.chat.id if is_callback else message.chat.id
 
-    if isinstance(message, CallbackQuery):
+    text_alert = "Назад в профиль"
+    text_for_message = (f'Ты вызвал панель владельца\n\n'
+                        f'Твой ID: <code>{user_id}</code>\n'
+                        f'ID чата: <code>{chat_id}</code>')
+
+    if is_callback:
         await message.answer('Назад в профиль')
-
-        user_id = message.from_user.id
-        chat_id = message.message.chat.id
-
-        text_for_message = (f'Ты вызвал панель владельца\n\n'
-                            f'Твой ID: <code>{user_id}</code>\n'
-                            f'ID чата: <code>{chat_id}</code>')
-
         await message.message.edit_text(text_for_message, reply_markup=kb.rpanel)
         return
-
-    text_for_message = (f'Ты вызвал панель владельца\n\n'
-                        f'Твой ID: <code>{message.from_user.id}</code>\n'
-                        f'ID чата: <code>{message.chat.id}</code>')
 
     await message.answer(text_for_message, reply_markup=kb.rpanel)
 

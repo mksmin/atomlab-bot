@@ -44,19 +44,6 @@ async def cmd_start(message: Message, command: CommandObject) -> None:
     await message.answer(f'Привет, {from_user.first_name}!')
 
 
-@router.message(Command('test'))
-async def cmd_test(message: Message, command: CommandObject) -> None:
-    try:
-        args = command.args
-        if args:
-            key = args
-            await message.answer(f'Получил аргументы: {key}')
-    except Exception as e:
-        pass
-    finally:
-        await message.answer(f'Ты вызвал тестовую команду')
-
-
 # Добавляем пользователя в бд после вступления в чат
 @router.chat_member(ChatMemberUpdatedFilter(
     member_status_changed=
@@ -141,15 +128,12 @@ async def remove_chat_member(update: ChatMemberUpdated) -> None:
                 F.text.lower().contains('+rep'),
                 ChatType(chat_type=["group", "supergroup"]))
 async def add_rep_to_user(message: Message) -> None:
-    id_recipient = message.reply_to_message.from_user.id
-    id_sender = message.from_user.id
+    id_sender, id_recipient = message.from_user.id, message.reply_to_message.from_user.id
 
-    if id_recipient == message.bot.id:
-        await message.reply(msg_texts.bot_karma_message)
-        return None
-    if id_recipient == id_sender:
-        await message.reply(msg_texts.self_karma_raise)
-        return None
+    if id_recipient in (message.bot.id, id_sender):
+        msg = msg_texts.bot_karma_message if id_recipient == message.bot.id else msg_texts.self_karma_raise
+        await message.reply(msg)
+        return
 
     sender, recipient = await rq.check_karma(id_sender, id_recipient)
 
