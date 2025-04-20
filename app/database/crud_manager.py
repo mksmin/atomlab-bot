@@ -91,6 +91,14 @@ class BaseCRUDManager(Generic[ModelType]):
         instance = result.scalar_one_or_none()
         return instance
 
+    @auto_session
+    async def update(self, instance: ModelType, *, session: AsyncSession, **kwargs):
+        if not await self._exist_by_field("id", instance.id):
+            raise ValueError(f"Entry with id={instance.id} not found in {self.model.__name__} model")
+
+        session.add(instance)
+        logger.info(f"Updated entry of {self.model.__name__} model with id={instance.id}")
+
 
 class UserManager(BaseCRUDManager):
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]):
@@ -102,13 +110,12 @@ class UserManager(BaseCRUDManager):
         logger.info(f"Getting user with tg_id={user_tg_id}...")
         return await super().get_one(search_value=user_tg_id)
 
-    @auto_session
-    async def create_user(self, tg_id: int, *, session: AsyncSession, username: str = None) -> User:
+    async def create_user(self, tg_id: int, *, username: str = None) -> User:
         if await self._exist_by_field("tg_id", tg_id):
             user = await self.get_user_by_tg_id(tg_id)
             if user.tg_username != username:
                 user.tg_username = username
-                session.add(user)
+                await super().update(instance=user)
                 logger.info(f"Updated {User.__name__} with id={user.id}")
         else:
             user = await super().create(tg_id=tg_id, tg_username=username)
