@@ -23,7 +23,7 @@ import app.statesuser as st
 from app.database import Project
 from app.messages import msg_texts as mt
 from app.middlewares import ChatType, RootProtect
-from app.handlers import get_user_profile
+from app.handlers.users import get_user_profile
 from config.config import get_id_chat_root, logger
 from pathlib import Path
 

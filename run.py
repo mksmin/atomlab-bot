@@ -8,10 +8,10 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
 # import from modules
-from app.adminpanel import ownrouter
-from app.handlers import router
+from app.handlers.admin import ownrouter
+from app.handlers.users import router
 from app.database import db_helper
-from config import get_tokens, get_id_chat_root, logger, settings
+from config import get_id_chat_root, logger, settings
 from config import BotNotification as bn
 
 
