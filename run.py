@@ -8,8 +8,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
 # import from modules
-from app.handlers.admin import ownrouter
-from app.handlers.users import router
+from app.handlers import admin_router, users_router
 from app.database import db_helper
 from config import get_id_chat_root, logger, settings
 from config import BotNotification as bn
@@ -31,7 +30,7 @@ async def main(bot) -> None:
     :return: None
     """
     dp = Dispatcher()
-    dp.include_routers(ownrouter, router)
+    dp.include_routers(admin_router, users_router)
     dp.startup.register(on_startup)
     dp.shutdown.register(on_shutdown)
     await bot.delete_webhook(drop_pending_updates=True)  # Пропускаем накопленные сообщения
