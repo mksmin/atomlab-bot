@@ -1,0 +1,11 @@
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - config/.env
+#    volumes:
+#      - ./config/.env:/app/config/.env:ro
+#      - ./config/.env.template:/app/config/.env.template:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

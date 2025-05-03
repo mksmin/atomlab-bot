@@ -1,0 +1,16 @@
+.idea
+.vscode
+.venv
+__pycache__
+*.pyc
+
+*.log
+*.sqlite3
+
+.git
+.gitignore
+
+config/.env
+config/.env.template
+.env
+.env.template
