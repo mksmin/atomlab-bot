@@ -7,7 +7,6 @@ from aiogram.filters import Filter
 from aiogram.types import Message
 
 # import from modules
-from config.config import get_tokens
 from app.database import get_one_user_by_tgid, User
 from app.database.models import async_session
 

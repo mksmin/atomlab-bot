@@ -15,11 +15,10 @@ from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_
 from sqlalchemy.dialects.postgresql import UUID
 
 # import from modules
-from config import get_tokens, dbconf
+from config import dbconf, settings
 
 # create engine and connection to DB
-post_host_token = asyncio.run(get_tokens('PostSQL_host'))
-engine = create_async_engine(url=post_host_token,
+engine = create_async_engine(url=str(settings.db.url),
                              echo=dbconf.echo_mode)  # create engine
 async_session = async_sessionmaker(engine)  # create session func
 

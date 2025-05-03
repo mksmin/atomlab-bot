@@ -14,29 +14,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 logger = logging.getLogger(__name__)
 
 
-async def get_tokens(name_of_token: str) -> str:
-    """
-    function accept name as str
-    load .env file
-    find token {name}
-
-    :param name_of_token:
-    :return: token as str
-    """
-    dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
-    if os.path.exists(dotenv_path):
-        load_dotenv(dotenv_path)
-        return os.getenv(name_of_token)
-    else:
-        print("No .env file found")
-
-
 async def get_id_chat_root() -> int:
     """
     :return: id of root-chat as str
     """
-    root_tgid = await get_tokens("ROOT_CHAT")
-    return int(root_tgid)
+    return int(settings.bot.root_chat)
 
 
 class BotConfig(BaseModel):
@@ -55,7 +37,7 @@ class DatabaseConfig(BaseModel):
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=(Path(__file__).parent / ".env.template", Path(__file__).parent / ".env"),
+        env_file=".env.template, .env",
         case_sensitive=False,
         env_nested_delimiter="__",
         env_prefix="APP_CONFIG__",
@@ -63,14 +45,6 @@ class Settings(BaseSettings):
     )
     bot: BotConfig
     db: DatabaseConfig
-
-    # временные переменные, чтобы pydantic не ругался
-    token: str
-    postsql_host: str
-    root: int
-    root_chat: int
-    postgresql_prod: str = ""
-    token_prod: str = ""
 
 
 settings = Settings()
