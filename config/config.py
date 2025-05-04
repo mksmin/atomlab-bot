@@ -37,7 +37,7 @@ class DatabaseConfig(BaseModel):
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env.template, .env",
+        env_file=(Path(__file__).parent / ".env.template", Path(__file__).parent / ".env"),
         case_sensitive=False,
         env_nested_delimiter="__",
         env_prefix="APP_CONFIG__",
