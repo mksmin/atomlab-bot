@@ -5,6 +5,7 @@ services:
     tty: true
     stdin_open: true
     env_file:
+      - TZ=Europe/Moscow
       - config/.env
 #    volumes:
 #      - ./config/.env:/app/config/.env:ro
