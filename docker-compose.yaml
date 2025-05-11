@@ -5,10 +5,8 @@ services:
     tty: true
     stdin_open: true
     env_file:
-      - TZ=Europe/Moscow
       - config/.env
-#    volumes:
-#      - ./config/.env:/app/config/.env:ro
-#      - ./config/.env.template:/app/config/.env.template:ro
+    environment:
+      - TZ=Europe/Moscow
     extra_hosts:
       - "host.docker.internal:host-gateway"
