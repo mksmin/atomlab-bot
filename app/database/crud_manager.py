@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from typing import TypeVar, Generic, Type, AsyncGenerator, ParamSpec, Callable, Concatenate, Any, Coroutine
 
 # import from modules
-from app.database.models import User
+from app.database.models import User, Chat
 from app.database.db_helper import db_helper
 from config import logger
 
@@ -123,9 +123,27 @@ class UserManager(BaseCRUDManager):
         return user
 
 
+class ChatManager(BaseCRUDManager):
+    def __init__(self, session_factory: async_sessionmaker[AsyncSession]):
+        super().__init__(session_factory, model=Chat)
+
+    async def get_chat_by_id(self, chat_id: int) -> Chat | None:
+        logger.info(f"Getting chat with id={chat_id}...")
+        return await super().get_one(search_value=chat_id, search_field="chat_id")
+
+    async def set_chat(self, chat_id: int, chat_title: str) -> Chat:
+        if await self._exist_by_field("chat_id", chat_id):
+            chat = await self.get_chat_by_id(chat_id)
+        else:
+            chat = await super().create(chat_id=chat_id, chat_title=chat_title)
+            logger.info(f"Created {Chat.__name__} with id={chat.id}")
+        return chat
+
+
 class CRUDManager:
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]):
         self.user: UserManager = UserManager(session_factory)
+        self.chat: ChatManager = ChatManager(session_factory)
 
 
 crud_manager = CRUDManager(db_helper.session_factory)
