@@ -20,11 +20,11 @@ import app.database.request as rq
 import app.keyboards as kb
 import app.statesuser as st
 
-from app.database import Project
+from app.database import Project, crud_manager
 from app.messages import msg_texts as mt
 from app.middlewares import ChatType, RootProtect
 from app.handlers.users import get_user_profile
-from config.config import get_id_chat_root, logger
+from config.config import get_id_chat_root, logger, settings
 from pathlib import Path
 
 BASE_DIR_PATH = Path(__file__).resolve().parent.parent
@@ -67,11 +67,10 @@ async def get_chat_id(message: Message) -> None:
     func get chatid of where root-user used the command
     and sends it to the private chat of the root-user
     """
-    root_id = await get_id_chat_root()
-    await message.bot.send_message(chat_id=root_id,
+    await message.bot.send_message(chat_id=settings.bot.root_chat,
                                    text=f'Ты запросил ID чата\n\n'
-                                        f'Чат id - {message.chat.id}\n'
-                                        f'Название: {message.chat.title}')
+                                        f'Чат id: <code>{message.chat.id}</code>\n'
+                                        f'Название: <code>{message.chat.title}</code>')
 
 
 # manual register chat by root-user
@@ -79,7 +78,11 @@ async def get_chat_id(message: Message) -> None:
 async def register_chat_to_db(message: Message) -> None:
     chat_id = message.chat.id
     chat_title = message.chat.title
-    await rq.set_chat(chat_id, chat_title)
+    chat = await crud_manager.chat.set_chat(chat_id, chat_title)
+    if chat:
+        await message.answer(f'Чат сохранен')
+    else:
+        await message.answer(f'Возникла ошибка при сохранении чата')
 
 
 # Регистрируем чат в БД после добавления бота администратором
@@ -89,7 +92,7 @@ async def register_chat_to_db(message: Message) -> None:
     )
 )
 async def bot_added_as_admin(update: ChatMemberUpdated):
-    root_id = await get_id_chat_root()
+    root_id = settings.bot.root_chat
     chat_id = update.chat.id
     chat_title = update.chat.title
 
@@ -99,16 +102,65 @@ async def bot_added_as_admin(update: ChatMemberUpdated):
                                        f'\n\n<b>Название группы:</b>'
                                        f'\n{chat_title}'
                                        f'\n<b>ID группы:</b> {chat_id}'
-                                       f'\n<b>Тип группы:</b> {update.chat.type}')
+                                       f'\n<b>Тип группы:</b> {update.chat.type}'
+                                       f'\n\n <b>Проект: </b>')
+
+    logger.info(f'User {update.from_user.id} add bot as admin to {chat_id}')
 
     # Регистрируем чат в базе данных
-    await rq.set_chat(chat_id, chat_title)
+    chat = await crud_manager.chat.set_chat(chat_id, chat_title)
+    if chat:
+        await update.bot.send_message(chat_id=root_id,
+                                      text=f'Чат сохранен в БД')
+    else:
+        await update.bot.send_message(chat_id=root_id,
+                                      text=f'Возникла ошибка при сохранении чата')
+
+
+@router.my_chat_member(
+    ChatMemberUpdatedFilter(
+        member_status_changed=(ADMINISTRATOR | IS_MEMBER) >> IS_NOT_MEMBER
+    )
+)
+async def bot_removed_from_chat(update: ChatMemberUpdated):
+    root_id = settings.bot.root_chat
+    chat_id = update.chat.id
+    chat_title = update.chat.title
+
+    # Отправляем сообщение в чат с ID, указанным в переменной root_id
+    await update.bot.send_message(chat_id=root_id,
+                                  text=f'Бот удален из группы'
+                                       f'\n\n<b>Название группы:</b>'
+                                       f'\n{chat_title}'
+                                       f'\n<b>ID группы:</b> {chat_id}'
+                                       f'\n<b>Тип группы:</b> {update.chat.type}')
+    logger.info(f'User {update.from_user.id} remove bot from {chat_id}')
+
+
+@router.my_chat_member(
+    ChatMemberUpdatedFilter(
+        member_status_changed=ADMINISTRATOR >> IS_MEMBER
+    )
+)
+async def bot_removed_from_chat(update: ChatMemberUpdated):
+    root_id = settings.bot.root_chat
+    chat_id = update.chat.id
+    chat_title = update.chat.title
+
+    # Отправляем сообщение в чат с ID, указанным в переменной root_id
+    await update.bot.send_message(chat_id=root_id,
+                                  text=f'Бот лишен статуса администратора'
+                                       f'\n\n<b>Название группы:</b>'
+                                       f'\n{chat_title}'
+                                       f'\n<b>ID группы:</b> {chat_id}'
+                                       f'\n<b>Тип группы:</b> {update.chat.type}')
+    logger.info(f'User {update.from_user.id} remove bot as admin from {chat_id}')
 
 
 # /-- send start--/
 
 # Функция отправки сообщения во все чаты
-# Умеет отлавливать фото с тектом или только текст (форматированный)
+# Умеет отлавливать фото с текстом или только текст (форматированный)
 # Не умеет работать с остальным контентом
 @router.message(Command('send'), RootProtect(), ChatType(chat_type='private'))
 async def sendchats(message: Message | CallbackQuery, state: FSMContext):
@@ -446,6 +498,9 @@ async def save_description_of_project(message: Message, state: FSMContext):
 
 @router.callback_query(F.data == 'cancel_prj', RootProtect())
 async def cancel_prj(callback: CallbackQuery, state: FSMContext):
+    """
+    Отменяет создание проекта
+    """
     await callback.message.edit_text('Ты решил не сохранять проект', reply_markup=None)
     await callback.answer('Операция отменена')
     await state.clear()
@@ -453,6 +508,9 @@ async def cancel_prj(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == 'save_prj', RootProtect())
 async def save_prj(callback: CallbackQuery, state: FSMContext):
+    """
+    Отлавливает, когда юзер нажимает на кнопку Сохранить проект и сохраняет его на сервере
+    """
     data = await state.get_data()
     user_project = Project(
         prj_name=data['prj_name'],
@@ -473,6 +531,9 @@ async def save_prj(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == 'myprojects', RootProtect())
 async def save_prj(callback: CallbackQuery, state: FSMContext):
+    """
+    Отлавливает, когда юзер нажимает на кнопку Мои проекты, делает запрос на сервер и возвращает список проектов
+    """
     await callback.answer('Вызов списка проектов')
     list_projects_objects = await rq.get_list_of_projects(tg_user_id=callback.from_user.id)
     data_list = [item['prj_name'] for key, item in list_projects_objects.items()]
@@ -597,6 +658,10 @@ async def admin_cancel_delete(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == 'switch_project', RootProtect())
 async def admin_cancel_delete(callback: CallbackQuery, state: FSMContext):
+    """
+    Отлавливает кнопку switch_project и предоставляет функциональность для переключения между проектами
+    """
+
     await callback.answer(f'Пока ничего нет')
     await state.clear()
     return
@@ -646,12 +711,8 @@ async def create_qr_code(callback: CallbackQuery, state: FSMContext):
     """
     Обрабатывает callback запрос на создание QR-кода.
 
-    Args:
-        callback (CallbackQuery): Объект callback запроса.
-        state (FSMContext): Контекст состояния.
-
-    Returns:
-        None
+    Эта обработка активируется, когда данные callback соответствуют 'create_qr_code'.
+    Устанавливает состояние FSM в 'start_qr' и запрашивает у пользователя ссылку для генерации QR-кода.
     """
     await callback.answer(' ')
     await state.set_state(st.CreateQR.start_qr)
@@ -661,14 +722,14 @@ async def create_qr_code(callback: CallbackQuery, state: FSMContext):
 @router.message(st.CreateQR.start_qr, RootProtect())
 async def send_qr_code(message: Message, state: FSMContext):
     """
-    Обрабатывает сообщение с ссылкой и создает QR-код для этой ссылки.
+    Обрабатывает сообщение со ссылкой и создает QR-код для этой ссылки.
 
-    Args:
+    Проверяет наличие URL в сообщении. Если URL найден, генерирует QR-код,
+    сохраняет его во временную директорию, отправляет пользователю и сразу удаляет.
+
+    Аргументы:
         message (Message): Сообщение, содержащее ссылку.
-        state (FSMContext): Контекст состояния.
-
-    Returns:
-        None
+        state (FSMContext): Контекст состояния для управления FSM.
     """
     entitles = message.entities
 
