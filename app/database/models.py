@@ -99,8 +99,6 @@ class Chat(Base):
     chat_title: Mapped[str] = mapped_column(String(120), nullable=True, default='null')
     project_id = mapped_column(UUID(as_uuid=True), nullable=True, unique=False)
 
-    prj = relationship('Project', back_populates='chat', uselist=False)
-
 
 class ChatUsers(SearchableMixin, TimestampsMixin, Base):
     """
@@ -135,8 +133,6 @@ class Project(SearchableMixin, TimestampsMixin, Base):
     prj_name: Mapped[str] = mapped_column(String(50), nullable=True)
     prj_description: Mapped[str] = mapped_column(String(200), nullable=True)
     prj_owner = mapped_column(BigInteger, ForeignKey('users.tg_id'), nullable=False)
-
-    chat = relationship('Chat', back_populates='prj')
 
     @classmethod
     def get_search_attribute(cls):
