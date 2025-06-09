@@ -13,4 +13,8 @@ RUN poetry config virtualenvs.create false \
 
 COPY . .
 
+RUN chmod +x ./config/prestart.sh
+
+ENTRYPOINT ["./config/prestart.sh"]
+
 CMD ["python", "-u", "run.py"]
