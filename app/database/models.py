@@ -97,7 +97,7 @@ class Chat(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     chat_id = mapped_column(BigInteger, nullable=False, unique=True)
     chat_title: Mapped[str] = mapped_column(String(120), nullable=True, default='null')
-    project_id = mapped_column(UUID(as_uuid=True), ForeignKey('projects.uuid'), nullable=True, unique=False)
+    project_id = mapped_column(UUID(as_uuid=True), nullable=True, unique=False)
 
     prj = relationship('Project', back_populates='chat', uselist=False)
 
