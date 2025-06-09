@@ -582,78 +582,78 @@ async def admin_call_user_profile(callback: CallbackQuery):
     await get_statistic(message=callback)
 
 
-@router.callback_query(F.data == 'delete_project', RootProtect())
-async def admin_init_remove_project(callback: CallbackQuery, state: FSMContext):
-    await callback.answer('Будем удалять проект')
-    await state.set_state(st.DeleteEntry.object_number)
-    await callback.message.answer(f'Пришли номер проекта, который хочешь удалить')
+# @router.callback_query(F.data == 'delete_project', RootProtect())
+# async def admin_init_remove_project(callback: CallbackQuery, state: FSMContext):
+#     await callback.answer('Будем удалять проект')
+#     await state.set_state(st.DeleteEntry.object_number)
+#     await callback.message.answer(f'Пришли номер проекта, который хочешь удалить')
 
+#
+# @router.message(F.text.regexp(r"^\d+$"),
+#                 st.DeleteEntry.object_number,
+#                 ChatType(chat_type='private'),
+#                 RootProtect())
+# async def get_number_of_project(message: Message, state: FSMContext):
+#     list_projects_objects = await rq.get_list_of_projects(tg_user_id=message.from_user.id)
+#     data_list = [result[0] for result in list_projects_objects]
+#
+#     if len(data_list) < 1:
+#         await message.answer(f'Возникла ошибка. Не нашел активных проектов. Операция отменена ')
+#         await state.clear()
+#         return
+#
+#     index_looking_for = int(message.text) - 1
+#
+#     if index_looking_for > len(data_list) - 1:
+#         await message.answer(f'Ошибка. Отправь число от 1 до {len(data_list)}')
+#         return
+#
+#     project_to_delete: Project = data_list[index_looking_for]
+#
+#     sent_message = await message.answer(f'Подтвердить удаление проекта <b>{project_to_delete.prj_name}?</b>',
+#                                         reply_markup=kb.confirm_deletion)
+#     await state.update_data(object_number=project_to_delete, last_message_id=sent_message.message_id)
 
-@router.message(F.text.regexp(r"^\d+$"),
-                st.DeleteEntry.object_number,
-                ChatType(chat_type='private'),
-                RootProtect())
-async def get_number_of_project(message: Message, state: FSMContext):
-    list_projects_objects = await rq.get_list_of_projects(tg_user_id=message.from_user.id)
-    data_list = [result[0] for result in list_projects_objects]
-
-    if len(data_list) < 1:
-        await message.answer(f'Возникла ошибка. Не нашел активных проектов. Операция отменена ')
-        await state.clear()
-        return
-
-    index_looking_for = int(message.text) - 1
-
-    if index_looking_for > len(data_list) - 1:
-        await message.answer(f'Ошибка. Отправь число от 1 до {len(data_list)}')
-        return
-
-    project_to_delete: Project = data_list[index_looking_for]
-
-    sent_message = await message.answer(f'Подтвердить удаление проекта <b>{project_to_delete.prj_name}?</b>',
-                                        reply_markup=kb.confirm_deletion)
-    await state.update_data(object_number=project_to_delete, last_message_id=sent_message.message_id)
-
-
-@router.callback_query(F.data == 'confirm_delete', RootProtect())
-async def admin_confirm_delete_prj(callback: CallbackQuery, state: FSMContext):
-    """
-    Обрабатывает callback запрос на подтверждение удаления проекта.
-
-    Args:
-        callback (CallbackQuery): Объект callback запроса.
-        state (FSMContext): Контекст состояния.
-
-    Returns:
-        None
-    """
-    # Получаю конкретный объект класса Project для удаления
-    data = await state.get_data()
-    project_to_delete = data['object_number']
-
-    try:
-        await rq.delete_entry(obj=project_to_delete)
-        await callback.answer(f'Удален успешно')
-        await callback.message.edit_text(f'Проект успешно удален', reply_markup=None)
-
-    except Exception as e:
-        await callback.message.edit_text(f'Операция отменена. Возникла ошибка: {e}', reply_markup=None)
-        await callback.answer(f'Ошибка при удалении')
-
-    await state.clear()
-
-
-@router.message(st.DeleteEntry.object_number, RootProtect(), ChatType(chat_type='private'))
-async def get_nuber_of_project(message: Message):
-    await message.answer(f'Ты прислал не число')
-
-
-@router.callback_query(F.data == 'cancel_delete', RootProtect())
-async def admin_cancel_delete(callback: CallbackQuery, state: FSMContext):
-    await callback.answer(f'Операция отменена')
-    await callback.message.edit_text(f'Ты решил не удалять проект', reply_markup=None)
-    await state.clear()
-    return
+#
+# @router.callback_query(F.data == 'confirm_delete', RootProtect())
+# async def admin_confirm_delete_prj(callback: CallbackQuery, state: FSMContext):
+#     """
+#     Обрабатывает callback запрос на подтверждение удаления проекта.
+#
+#     Args:
+#         callback (CallbackQuery): Объект callback запроса.
+#         state (FSMContext): Контекст состояния.
+#
+#     Returns:
+#         None
+#     """
+#     # Получаю конкретный объект класса Project для удаления
+#     data = await state.get_data()
+#     project_to_delete = data['object_number']
+#
+#     try:
+#         await rq.delete_entry(obj=project_to_delete)
+#         await callback.answer(f'Удален успешно')
+#         await callback.message.edit_text(f'Проект успешно удален', reply_markup=None)
+#
+#     except Exception as e:
+#         await callback.message.edit_text(f'Операция отменена. Возникла ошибка: {e}', reply_markup=None)
+#         await callback.answer(f'Ошибка при удалении')
+#
+#     await state.clear()
+#
+#
+# @router.message(st.DeleteEntry.object_number, RootProtect(), ChatType(chat_type='private'))
+# async def get_nuber_of_project(message: Message):
+#     await message.answer(f'Ты прислал не число')
+#
+#
+# @router.callback_query(F.data == 'cancel_delete', RootProtect())
+# async def admin_cancel_delete(callback: CallbackQuery, state: FSMContext):
+#     await callback.answer(f'Операция отменена')
+#     await callback.message.edit_text(f'Ты решил не удалять проект', reply_markup=None)
+#     await state.clear()
+#     return
 
 
 @router.callback_query(F.data == 'switch_project', RootProtect())
